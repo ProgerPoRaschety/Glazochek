@@ -33,3 +33,6 @@ win32 {
     LIBS += -L$$OPENCV_DIR/x64/vc16/lib \
             -lopencv_world451
 }
+
+FORMS += \
+    mainwindow.ui
