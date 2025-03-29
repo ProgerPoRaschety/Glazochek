@@ -1,64 +1,84 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QVBoxLayout>
-#include <QDebug>
+#include "cv_webcam_capture.h"  // Добавлен заголовочный файл
+#include <QPainter>
+#include <QMessageBox>  // Добавлен заголовочный файл
+
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-    , m_webcam(new CVWebcamCapture(this))
+    : QMainWindow(parent),
+    ui(new Ui::MainWindow),
+    m_webcam(new CVWebcamCapture(this))
 {
     ui->setupUi(this);
 
-    // Create and setup camera label
-    m_cameraLabel = new QLabel(this);
-    m_cameraLabel->setAlignment(Qt::AlignCenter);
-    setCentralWidget(m_cameraLabel);
+    // Настройка главного окна
+    this->resize(800, 600);
+    this->setMinimumSize(640, 480);
 
-    // Create and setup FPS label
-    m_fpsLabel = new QLabel(this);
-    m_fpsLabel->setAlignment(Qt::AlignRight | Qt::AlignTop);
-    m_fpsLabel->setStyleSheet("QLabel { background-color : rgba(0,0,0,50%); color : white; padding: 5px; }");
-    m_fpsLabel->setText("FPS: 0.0");
-    m_fpsLabel->setFixedSize(100, 30);
+    // Настройка области отображения видео
+    ui->cameraLabel->setAlignment(Qt::AlignCenter);
+    ui->cameraLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    ui->cameraLabel->setStyleSheet("background-color: black;");
 
-    // Create layout and add widgets
-    QVBoxLayout *layout = new QVBoxLayout(m_cameraLabel);
-    layout->addWidget(m_fpsLabel, 0, Qt::AlignRight | Qt::AlignTop);
-    layout->setContentsMargins(0, 0, 0, 0);
-    m_cameraLabel->setLayout(layout);
+    // Настройка метки FPS
+    ui->fpsLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
 
     connect(m_webcam, &CVWebcamCapture::new_frame, this, &MainWindow::update_frame);
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
 
     if(!m_webcam->start_camera()) {
-        handle_camera_error("Failed to start camera");
+        handle_camera_error(tr("Failed to initialize camera. Please check if camera is connected."));
     }
 }
 
 MainWindow::~MainWindow()
 {
-    delete m_webcam;  // Освобождаем ресурсы камеры
-    delete ui;        // Освобождаем UI
+    delete m_webcam;
+    delete ui;
 }
 
-void MainWindow::update_frame(QImage frame, double fps)
+void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
 {
-    // Обновление FPS
-    m_fpsLabel->setText(QString("FPS: %1").arg(fps, 0, 'f', 1));
+    if(frame.isNull()) return;
 
-    // Отображение кадра
+    // Обновление FPS
+    ui->fpsLabel->setText(QString("FPS: %1").arg(fps, 0, 'f', 1));
+
+    // Подготовка изображения
     QPixmap pixmap = QPixmap::fromImage(frame);
-    pixmap = pixmap.scaled(m_cameraLabel->size(),
+    if(pixmap.isNull()) return;
+
+    // Масштабирование с сохранением пропорций
+    pixmap = pixmap.scaled(ui->cameraLabel->size(),
                            Qt::KeepAspectRatio,
                            Qt::SmoothTransformation);
-    m_cameraLabel->setPixmap(pixmap);
+
+    // Создание центрированного изображения
+    QPixmap centeredPixmap(ui->cameraLabel->size());
+    centeredPixmap.fill(Qt::black);
+    QPainter painter(&centeredPixmap);
+    painter.drawPixmap((ui->cameraLabel->width() - pixmap.width())/2,
+                       (ui->cameraLabel->height() - pixmap.height())/2,
+                       pixmap);
+
+    ui->cameraLabel->setPixmap(centeredPixmap);
+
+    // Обновление статуса движения
+    ui->motionLabel->setText(motionDetected ? "Motion Detected: Yes" : "Motion Detected: No");
+    ui->cameraLabel->setStyleSheet(QString("background-color: black; border: 2px solid %1;")
+                                       .arg(motionDetected ? "red" : "green"));
 }
+
 void MainWindow::handle_camera_error(const QString &message)
 {
-    // Показываем сообщение об ошибке
-    m_cameraLabel->setText(message);
-    m_cameraLabel->setStyleSheet("QLabel { color : red; font-weight: bold; }");
+    ui->cameraLabel->setText(message);
+    ui->cameraLabel->setStyleSheet("color: red; font-weight: bold; font-size: 16px; background-color: black;");
 
-    // Выводим ошибку в консоль (теперь будет работать)
-    qCritical() << "Camera error:" << message;
+    if(QMessageBox::question(this, tr("Camera Error"),
+                              tr("%1\nTry to reconnect?").arg(message)) == QMessageBox::Yes) {
+        if(m_webcam->start_camera()) {  // Исправлено на правильное имя метода
+            ui->cameraLabel->setText("");
+            ui->cameraLabel->setStyleSheet("background-color: black;");
+        }
+    }
 }
