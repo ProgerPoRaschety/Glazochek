@@ -4,20 +4,23 @@
 #include <QObject>
 #include <QTimer>
 #include <QImage>
-#include <opencv2/opencv.hpp>
+#include <QElapsedTimer>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/videoio.hpp>
 
 class CVWebcamCapture : public QObject
 {
     Q_OBJECT
 public:
     explicit CVWebcamCapture(QObject *parent = nullptr);
-    ~CVWebcamCapture();
+    virtual ~CVWebcamCapture();
 
     bool start_camera(int camera_index = 0);
     void stop_camera();
 
 signals:
-    void new_frame(QImage frame);
+    void new_frame(QImage frame, double fps);
     void camera_error(QString message);
 
 private slots:
@@ -27,6 +30,9 @@ private:
     cv::VideoCapture *m_capture;
     QTimer *m_timer;
     cv::Mat m_frame;
+    QElapsedTimer m_fpsTimer;
+    int m_frameCount = 0;
+    double m_currentFps = 0.0;
 };
 
 #endif // CV_WEBCAM_CAPTURE_H

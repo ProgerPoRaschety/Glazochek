@@ -7,6 +7,7 @@ CVWebcamCapture::CVWebcamCapture(QObject *parent)
     m_timer(new QTimer(this))
 {
     connect(m_timer, &QTimer::timeout, this, &CVWebcamCapture::process_frame);
+    m_fpsTimer.start();
 }
 
 CVWebcamCapture::~CVWebcamCapture()
@@ -21,7 +22,7 @@ bool CVWebcamCapture::start_camera(int camera_index)
         stop_camera();
     }
 
-    m_capture = new cv::VideoCapture(camera_index);
+    m_capture = new cv::VideoCapture(camera_index, cv::CAP_ANY);
     if(!m_capture->isOpened()) {
         emit camera_error("Could not open camera");
         delete m_capture;
@@ -29,7 +30,9 @@ bool CVWebcamCapture::start_camera(int camera_index)
         return false;
     }
 
-    m_timer->start(36);
+    m_timer->start(33); // ~30 FPS
+    m_frameCount = 0;
+    m_fpsTimer.restart();
     return true;
 }
 
@@ -58,6 +61,14 @@ void CVWebcamCapture::process_frame()
         return;
     }
 
+    // Вычисление FPS
+    m_frameCount++;
+    if(m_fpsTimer.elapsed() >= 1000) {
+        m_currentFps = m_frameCount * 1000.0 / m_fpsTimer.elapsed();
+        m_frameCount = 0;
+        m_fpsTimer.restart();
+    }
+
     cv::cvtColor(m_frame, m_frame, cv::COLOR_BGR2RGB);
     QImage image(m_frame.data,
                  m_frame.cols,
@@ -65,5 +76,5 @@ void CVWebcamCapture::process_frame()
                  m_frame.step,
                  QImage::Format_RGB888);
 
-    emit new_frame(image.copy());
+    emit new_frame(image.copy(), m_currentFps);
 }
