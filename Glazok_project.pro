@@ -12,7 +12,8 @@ SOURCES += \
 HEADERS += \
     mainwindow.h \
     cv_webcam_capture.h
-
+FORMS += \
+    mainwindow.ui
 # OpenCV
 linux {
     INCLUDEPATH += /usr/include/opencv4
@@ -28,11 +29,20 @@ linux {
 }
 
 win32 {
-    OPENCV_DIR = C:/opencv/build
+    # Путь к установленной OpenCV через vcpkg
+    OPENCV_DIR = C:/Users/Antonio/vcpkg/installed/x64-windows
+
     INCLUDEPATH += $$OPENCV_DIR/include
-    LIBS += -L$$OPENCV_DIR/x64/vc16/lib \
-            -lopencv_world451
+    INCLUDEPATH += $$OPENCV_DIR/include/opencv4
+
+    LIBS += -L$$OPENCV_DIR/lib \
+            -lopencv_core \
+            -lopencv_highgui \
+            -lopencv_imgproc \
+            -lopencv_imgcodecs \
+            -lopencv_videoio
+
+    # Копирование DLL (исправленный путь)
+    QMAKE_POST_LINK += copy /Y $$OPENCV_DIR\\bin\\*.dll $$DESTDIR\\
 }
 
-FORMS += \
-    mainwindow.ui
