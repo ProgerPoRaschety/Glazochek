@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QMessageBox>
+#include <QResizeEvent>  // Добавляем необходимый заголовочный файл
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -18,27 +19,20 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
+    void resizeEvent(QResizeEvent *event) override;  // Добавляем объявление
+
 private slots:
     void update_frame(QImage frame, double fps, bool motionDetected);
     void handle_camera_error(const QString &message);
-    void on_sensitivitySlider_valueChanged(int value)
-    {
-        QString sensitivityText;
-        switch(value) {
-        case 0: sensitivityText = "Very Low"; break;
-        case 1: sensitivityText = "Low"; break;
-        case 2: sensitivityText = "Medium"; break;
-        case 3: sensitivityText = "High"; break;
-        case 4: sensitivityText = "Very High"; break;
-        case 5: sensitivityText = "Maximum"; break;
-        }
-        ui->sensitivityLabel->setText("Sensitivity: " + sensitivityText);
-        m_webcam->setSensitivity(value);
-    }
+    void on_sensitivitySlider_valueChanged(int value);
 
 private:
     Ui::MainWindow *ui;
     CVWebcamCapture *m_webcam;
+    QImage m_currentFrame;
+    double m_currentFps = 0.0;
+    bool m_lastMotionState = false;
 };
 
 #endif // MAINWINDOW_H

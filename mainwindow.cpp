@@ -3,6 +3,7 @@
 #include "cv_webcam_capture.h"
 #include <QPainter>
 #include <QMessageBox>
+#include <QResizeEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -46,6 +47,10 @@ void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
 {
     if(frame.isNull()) return;
 
+    m_currentFrame = frame;
+    m_currentFps = fps;
+    m_lastMotionState = motionDetected;
+
     ui->fpsLabel->setText(QString("FPS: %1").arg(fps, 0, 'f', 1));
 
     QPixmap pixmap = QPixmap::fromImage(frame);
@@ -83,4 +88,25 @@ void MainWindow::handle_camera_error(const QString &message)
     }
 }
 
+void MainWindow::on_sensitivitySlider_valueChanged(int value)
+{
+    QString sensitivityText;
+    switch(value) {
+    case 0: sensitivityText = "Very Low"; break;
+    case 1: sensitivityText = "Low"; break;
+    case 2: sensitivityText = "Medium"; break;
+    case 3: sensitivityText = "High"; break;
+    case 4: sensitivityText = "Very High"; break;
+    case 5: sensitivityText = "Maximum"; break;
+    }
+    ui->sensitivityLabel->setText("Sensitivity: " + sensitivityText);
+    m_webcam->setSensitivity(value);
+}
 
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    if(!m_currentFrame.isNull()) {
+        update_frame(m_currentFrame, m_currentFps, m_lastMotionState);
+    }
+}

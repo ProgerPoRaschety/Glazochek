@@ -11,29 +11,28 @@ MotionDetector::MotionDetector() :
 void MotionDetector::setSensitivity(int level)
 {
     m_sensitivityLevel = level;
-    // Настройка параметров в зависимости от уровня чувствительности
     switch(level) {
-    case 0: // Очень низкая
+    case 0: // Very Low
         m_threshold = 40;
         m_minContourArea = 2000;
         break;
-    case 1: // Низкая
+    case 1: // Low
         m_threshold = 35;
         m_minContourArea = 1500;
         break;
-    case 2: // Средняя (по умолчанию)
+    case 2: // Medium (default)
         m_threshold = 25;
         m_minContourArea = 500;
         break;
-    case 3: // Высокая
+    case 3: // High
         m_threshold = 15;
         m_minContourArea = 200;
         break;
-    case 4: // Очень высокая
+    case 4: // Very High
         m_threshold = 10;
         m_minContourArea = 100;
         break;
-    case 5: // Максимальная
+    case 5: // Maximum
         m_threshold = 5;
         m_minContourArea = 50;
         break;
