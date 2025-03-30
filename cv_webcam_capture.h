@@ -10,7 +10,7 @@
 #include <opencv2/videoio.hpp>
 #include "motion_detector.h"
 
-class CVWebcamCapture : public QObject
+class CVWebcamCapture : public QObject //Основной класс для работы с камерами
 {
     Q_OBJECT
 public:
@@ -20,7 +20,6 @@ public:
     bool start_camera(int camera_index = 0);
     void stop_camera();
     void setSensitivity(int level);
-
 signals:
     void new_frame(QImage frame, double fps, bool motionDetected);
     void camera_error(QString message);
@@ -38,4 +37,4 @@ private:
     bool m_cameraOpened = false;
 };
 
-#endif // CV_WEBCAM_CAPTURE_H
+#endif

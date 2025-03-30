@@ -22,4 +22,4 @@ private:
     int m_minContourArea;
 };
 
-#endif // MOTION_DETECTOR_H
+#endif

@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include <QMessageBox>
-#include <QResizeEvent>  // Добавляем необходимый заголовочный файл
+#include <QResizeEvent>
 #include "cv_webcam_capture.h"
 
 QT_BEGIN_NAMESPACE
@@ -21,8 +21,7 @@ public:
     ~MainWindow();
 
 protected:
-    void resizeEvent(QResizeEvent *event) override;  // Добавляем объявление
-
+    void resizeEvent(QResizeEvent *event) override;
 private slots:
     void update_frame(QImage frame, double fps, bool motionDetected);
     void handle_camera_error(const QString &message);
@@ -36,4 +35,4 @@ private:
     bool m_lastMotionState = false;
 };
 
-#endif // MAINWINDOW_H
+#endif

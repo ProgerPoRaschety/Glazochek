@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "cv_webcam_capture.h"  // Убедитесь, что этот заголовочный файл включен
+#include "cv_webcam_capture.h"
 #include <QPainter>
 #include <QMessageBox>
 
@@ -97,7 +97,7 @@ void MainWindow::on_sensitivitySlider_valueChanged(int value)
     case 5: sensitivityText = "Maximum"; break;
     }
     ui->sensitivityLabel->setText("Sensitivity: " + sensitivityText);
-    m_webcam->setSensitivity(value);
+    m_webcam->setSensitivity(value); // Вызов метода setSensitivity
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)

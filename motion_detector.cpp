@@ -1,5 +1,5 @@
 #include "motion_detector.h"
-#include <iostream>
+#include <QDebug>
 
 MotionDetector::MotionDetector() :
     m_firstFrame(true),
@@ -42,25 +42,32 @@ void MotionDetector::setSensitivity(int level)
 bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
 {
     if (frame.empty()) {
+        qDebug() << "Empty frame received in motion detection";
         return false;
     }
 
     try {
         cv::cvtColor(frame, m_grayFrame, cv::COLOR_BGR2GRAY);
+        //Конвертирует BGR (стандарт OpenCV) в оттенки серого для упрощения анализа
         cv::GaussianBlur(m_grayFrame, m_grayFrame, cv::Size(21, 21), 0);
-
+        //Применяет размытие Гаусса (ядро 21x21) для уменьшения шумов
         if (m_firstFrame) {
             m_previousFrame = m_grayFrame.clone();
             m_firstFrame = false;
+            qDebug() << "First frame captured for motion detection";
             return false;
         }
 
         cv::absdiff(m_previousFrame, m_grayFrame, m_diffFrame);
+        //Вычисляет абсолютную разницу между текущим и предыдущим кадром
         cv::threshold(m_diffFrame, m_threshFrame, m_threshold, 255, cv::THRESH_BINARY);
+        //Преобразует разницу в чёрно-белое изображение, где белые пиксели - зоны изменений
         cv::dilate(m_threshFrame, m_threshFrame, cv::Mat(), cv::Point(-1, -1), 2);
+        //Расширяет (увеличивает) белые области для объединения близких изменений
 
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(m_threshFrame, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+        //Находит границы всех белых областей (зон движения)
 
         bool motionDetected = false;
         for (const auto& contour : contours) {
@@ -71,10 +78,15 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
         }
 
         m_previousFrame = m_grayFrame.clone();
-        return motionDetected;
 
+        if (motionDetected) {
+            qDebug() << "Motion detected with sensitivity level:" << m_sensitivityLevel;
+        }
+
+        return motionDetected;
+        //Отбрасывает мелкие контуры и рисует прямоугольники вокруг значимых движений
     } catch (const cv::Exception& e) {
-        std::cerr << "Motion detection error: " << e.what() << std::endl;
+        qCritical() << "Motion detection error:" << e.what();
         return false;
     }
 }
