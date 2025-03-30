@@ -1,9 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "cv_webcam_capture.h"
+#include "cv_webcam_capture.h"  // Убедитесь, что этот заголовочный файл включен
 #include <QPainter>
 #include <QMessageBox>
-#include <QResizeEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -21,7 +20,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->fpsLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
 
-    // Настройка ползунка чувствительности
     ui->sensitivitySlider->setRange(0, 5);
     ui->sensitivitySlider->setValue(2);
     ui->sensitivitySlider->setTickInterval(1);
@@ -32,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
     connect(ui->sensitivitySlider, &QSlider::valueChanged, this, &MainWindow::on_sensitivitySlider_valueChanged);
 
-    if(!m_webcam->start_camera()) {
+    if (!m_webcam->start_camera()) {
         handle_camera_error(tr("Failed to initialize camera. Please check if camera is connected."));
     }
 }
@@ -45,7 +43,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
 {
-    if(frame.isNull()) return;
+    if (frame.isNull()) return;
 
     m_currentFrame = frame;
     m_currentFps = fps;
@@ -54,7 +52,7 @@ void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
     ui->fpsLabel->setText(QString("FPS: %1").arg(fps, 0, 'f', 1));
 
     QPixmap pixmap = QPixmap::fromImage(frame);
-    if(pixmap.isNull()) return;
+    if (pixmap.isNull()) return;
 
     pixmap = pixmap.scaled(ui->cameraLabel->size(),
                            Qt::KeepAspectRatio,
@@ -63,12 +61,11 @@ void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
     QPixmap centeredPixmap(ui->cameraLabel->size());
     centeredPixmap.fill(Qt::black);
     QPainter painter(&centeredPixmap);
-    painter.drawPixmap((ui->cameraLabel->width() - pixmap.width())/2,
-                       (ui->cameraLabel->height() - pixmap.height())/2,
+    painter.drawPixmap((ui->cameraLabel->width() - pixmap.width()) / 2,
+                       (ui->cameraLabel->height() - pixmap.height()) / 2,
                        pixmap);
 
     ui->cameraLabel->setPixmap(centeredPixmap);
-
     ui->motionLabel->setText(motionDetected ? "Motion Detected: Yes" : "Motion Detected: No");
     ui->cameraLabel->setStyleSheet(QString("background-color: black; border: 2px solid %1;")
                                        .arg(motionDetected ? "red" : "green"));
@@ -79,9 +76,9 @@ void MainWindow::handle_camera_error(const QString &message)
     ui->cameraLabel->setText(message);
     ui->cameraLabel->setStyleSheet("color: red; font-weight: bold; font-size: 16px; background-color: black;");
 
-    if(QMessageBox::question(this, tr("Camera Error"),
+    if (QMessageBox::question(this, tr("Camera Error"),
                               tr("%1\nTry to reconnect?").arg(message)) == QMessageBox::Yes) {
-        if(m_webcam->start_camera()) {
+        if (m_webcam->start_camera()) {
             ui->cameraLabel->setText("");
             ui->cameraLabel->setStyleSheet("background-color: black;");
         }
@@ -91,7 +88,7 @@ void MainWindow::handle_camera_error(const QString &message)
 void MainWindow::on_sensitivitySlider_valueChanged(int value)
 {
     QString sensitivityText;
-    switch(value) {
+    switch (value) {
     case 0: sensitivityText = "Very Low"; break;
     case 1: sensitivityText = "Low"; break;
     case 2: sensitivityText = "Medium"; break;
@@ -106,7 +103,7 @@ void MainWindow::on_sensitivitySlider_valueChanged(int value)
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
-    if(!m_currentFrame.isNull()) {
+    if (!m_currentFrame.isNull()) {
         update_frame(m_currentFrame, m_currentFps, m_lastMotionState);
     }
 }

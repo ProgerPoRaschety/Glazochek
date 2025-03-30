@@ -11,7 +11,7 @@ MotionDetector::MotionDetector() :
 void MotionDetector::setSensitivity(int level)
 {
     m_sensitivityLevel = level;
-    switch(level) {
+    switch (level) {
     case 0: // Very Low
         m_threshold = 40;
         m_minContourArea = 2000;
@@ -41,7 +41,7 @@ void MotionDetector::setSensitivity(int level)
 
 bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
 {
-    if(frame.empty()) {
+    if (frame.empty()) {
         return false;
     }
 
@@ -49,7 +49,7 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
         cv::cvtColor(frame, m_grayFrame, cv::COLOR_BGR2GRAY);
         cv::GaussianBlur(m_grayFrame, m_grayFrame, cv::Size(21, 21), 0);
 
-        if(m_firstFrame) {
+        if (m_firstFrame) {
             m_previousFrame = m_grayFrame.clone();
             m_firstFrame = false;
             return false;
@@ -63,8 +63,8 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
         cv::findContours(m_threshFrame, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
         bool motionDetected = false;
-        for(const auto& contour : contours) {
-            if(cv::contourArea(contour) < m_minContourArea) continue;
+        for (const auto& contour : contours) {
+            if (cv::contourArea(contour) < m_minContourArea) continue;
 
             motionDetected = true;
             cv::rectangle(outputFrame, cv::boundingRect(contour), cv::Scalar(0, 255, 0), 2);
@@ -73,7 +73,7 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
         m_previousFrame = m_grayFrame.clone();
         return motionDetected;
 
-    } catch(const cv::Exception& e) {
+    } catch (const cv::Exception& e) {
         std::cerr << "Motion detection error: " << e.what() << std::endl;
         return false;
     }

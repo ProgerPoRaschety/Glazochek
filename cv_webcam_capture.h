@@ -15,7 +15,7 @@ class CVWebcamCapture : public QObject
     Q_OBJECT
 public:
     explicit CVWebcamCapture(QObject *parent = nullptr);
-    virtual ~CVWebcamCapture();
+    ~CVWebcamCapture();
 
     bool start_camera(int camera_index = 0);
     void stop_camera();
@@ -31,7 +31,6 @@ private slots:
 private:
     cv::VideoCapture *m_capture;
     QTimer *m_timer;
-    cv::Mat m_frame;
     QElapsedTimer m_fpsTimer;
     int m_frameCount = 0;
     double m_currentFps = 0.0;

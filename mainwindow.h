@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QResizeEvent>  // Добавляем необходимый заголовочный файл
+#include "cv_webcam_capture.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
