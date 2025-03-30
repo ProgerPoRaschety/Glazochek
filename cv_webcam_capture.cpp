@@ -38,7 +38,6 @@ bool CVWebcamCapture::start_camera(int camera_index)
             return false;
         }
 
-        // Установка разрешения 640x480 (480p)
         m_capture->set(cv::CAP_PROP_FRAME_WIDTH, 640);
         m_capture->set(cv::CAP_PROP_FRAME_HEIGHT, 480);
         m_capture->set(cv::CAP_PROP_FPS, 30);
@@ -72,6 +71,13 @@ void CVWebcamCapture::stop_camera()
     m_cameraOpened = false;
 }
 
+void CVWebcamCapture::setSensitivity(int level)
+{
+    if(m_motionDetector) {
+        m_motionDetector->setSensitivity(level);
+    }
+}
+
 void CVWebcamCapture::process_frame()
 {
     if(!m_cameraOpened || !m_capture || !m_capture->isOpened()) {
@@ -91,7 +97,6 @@ void CVWebcamCapture::process_frame()
             return;
         }
 
-        // Вычисление FPS
         m_frameCount++;
         if(m_fpsTimer.elapsed() >= 1000) {
             m_currentFps = m_frameCount * 1000.0 / m_fpsTimer.elapsed();

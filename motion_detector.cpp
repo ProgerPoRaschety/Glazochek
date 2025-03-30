@@ -1,7 +1,44 @@
 #include "motion_detector.h"
 #include <iostream>
 
-MotionDetector::MotionDetector() : m_firstFrame(true) {}
+MotionDetector::MotionDetector() :
+    m_firstFrame(true),
+    m_sensitivityLevel(2),
+    m_threshold(25),
+    m_minContourArea(500)
+{}
+
+void MotionDetector::setSensitivity(int level)
+{
+    m_sensitivityLevel = level;
+    // Настройка параметров в зависимости от уровня чувствительности
+    switch(level) {
+    case 0: // Очень низкая
+        m_threshold = 40;
+        m_minContourArea = 2000;
+        break;
+    case 1: // Низкая
+        m_threshold = 35;
+        m_minContourArea = 1500;
+        break;
+    case 2: // Средняя (по умолчанию)
+        m_threshold = 25;
+        m_minContourArea = 500;
+        break;
+    case 3: // Высокая
+        m_threshold = 15;
+        m_minContourArea = 200;
+        break;
+    case 4: // Очень высокая
+        m_threshold = 10;
+        m_minContourArea = 100;
+        break;
+    case 5: // Максимальная
+        m_threshold = 5;
+        m_minContourArea = 50;
+        break;
+    }
+}
 
 bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
 {
@@ -20,7 +57,7 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
         }
 
         cv::absdiff(m_previousFrame, m_grayFrame, m_diffFrame);
-        cv::threshold(m_diffFrame, m_threshFrame, 25, 255, cv::THRESH_BINARY);
+        cv::threshold(m_diffFrame, m_threshFrame, m_threshold, 255, cv::THRESH_BINARY);
         cv::dilate(m_threshFrame, m_threshFrame, cv::Mat(), cv::Point(-1, -1), 2);
 
         std::vector<std::vector<cv::Point>> contours;
@@ -28,7 +65,7 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
 
         bool motionDetected = false;
         for(const auto& contour : contours) {
-            if(cv::contourArea(contour) < 500) continue;
+            if(cv::contourArea(contour) < m_minContourArea) continue;
 
             motionDetected = true;
             cv::rectangle(outputFrame, cv::boundingRect(contour), cv::Scalar(0, 255, 0), 2);

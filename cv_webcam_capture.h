@@ -17,8 +17,9 @@ public:
     explicit CVWebcamCapture(QObject *parent = nullptr);
     virtual ~CVWebcamCapture();
 
-    bool start_camera(int camera_index = 0);  // Правильное имя метода
+    bool start_camera(int camera_index = 0);
     void stop_camera();
+    void setSensitivity(int level);
 
 signals:
     void new_frame(QImage frame, double fps, bool motionDetected);
