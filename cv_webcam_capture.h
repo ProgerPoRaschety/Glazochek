@@ -8,19 +8,20 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
+#include "motion_detector.h"
 
-class CVWebcamCapture : public QObject
+class CVWebcamCapture : public QObject //Основной класс для работы с камерами
 {
     Q_OBJECT
 public:
     explicit CVWebcamCapture(QObject *parent = nullptr);
-    virtual ~CVWebcamCapture();
+    ~CVWebcamCapture();
 
     bool start_camera(int camera_index = 0);
     void stop_camera();
-
+    void setSensitivity(int level);
 signals:
-    void new_frame(QImage frame, double fps);
+    void new_frame(QImage frame, double fps, bool motionDetected);
     void camera_error(QString message);
 
 private slots:
@@ -29,10 +30,11 @@ private slots:
 private:
     cv::VideoCapture *m_capture;
     QTimer *m_timer;
-    cv::Mat m_frame;
     QElapsedTimer m_fpsTimer;
     int m_frameCount = 0;
     double m_currentFps = 0.0;
+    MotionDetector *m_motionDetector;
+    bool m_cameraOpened = false;
 };
 
-#endif // CV_WEBCAM_CAPTURE_H
+#endif

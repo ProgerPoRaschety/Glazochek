@@ -7,27 +7,27 @@ TEMPLATE = app
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    cv_webcam_capture.cpp
+    cv_webcam_capture.cpp \
+    motion_detector.cpp
 
 HEADERS += \
     mainwindow.h \
-    cv_webcam_capture.h
+    cv_webcam_capture.h \
+    motion_detector.h
+
 FORMS += \
     mainwindow.ui
-# OpenCV
+
+# OpenCV configuration for Linux
 linux {
     INCLUDEPATH += /usr/include/opencv4
     LIBS += -lopencv_core \
             -lopencv_highgui \
             -lopencv_videoio \
             -lopencv_imgproc
-
-    # Если нужно VTK
-    LIBS += -lvtkCommonCore \
-            -lvtkInteractionStyle \
-            -lvtkFiltersCore
 }
 
+# OpenCV configuration for Windows
 win32 {
     # Путь к установленной OpenCV через vcpkg
     OPENCV_DIR = C:/Users/Antonio/vcpkg/installed/x64-windows
@@ -42,7 +42,6 @@ win32 {
             -lopencv_imgcodecs \
             -lopencv_videoio
 
-    # Копирование DLL (исправленный путь)
-    QMAKE_POST_LINK += copy /Y $$OPENCV_DIR\\bin\\*.dll $$DESTDIR\\
+    # Копирование DLL в папку с исполняемым файлом
+    QMAKE_POST_LINK += copy /Y $$OPENCV_DIR\\bin\\*.dll $$OUT_PWD\\
 }
-
