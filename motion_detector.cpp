@@ -1,5 +1,9 @@
 #include "motion_detector.h"
 #include <QDebug>
+#include <fstream>   // For logging
+#include <chrono>    // For time
+#include <iomanip>   // For formatting time
+#include <ctime>
 
 MotionDetector::MotionDetector() :
     m_firstFrame(true),
@@ -8,8 +12,7 @@ MotionDetector::MotionDetector() :
     m_minContourArea(500)
 {}
 
-void MotionDetector::setSensitivity(int level)
-{
+void MotionDetector::setSensitivity(int level) {
     m_sensitivityLevel = level;
     switch (level) {
     case 0: // Very Low
@@ -39,8 +42,7 @@ void MotionDetector::setSensitivity(int level)
     }
 }
 
-bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
-{
+bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame) {
     if (frame.empty()) {
         qDebug() << "Empty frame received in motion detection";
         return false;
@@ -48,9 +50,8 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
 
     try {
         cv::cvtColor(frame, m_grayFrame, cv::COLOR_BGR2GRAY);
-        //Конвертирует BGR (стандарт OpenCV) в оттенки серого для упрощения анализа
         cv::GaussianBlur(m_grayFrame, m_grayFrame, cv::Size(21, 21), 0);
-        //Применяет размытие Гаусса (ядро 21x21) для уменьшения шумов
+
         if (m_firstFrame) {
             m_previousFrame = m_grayFrame.clone();
             m_firstFrame = false;
@@ -59,32 +60,52 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame)
         }
 
         cv::absdiff(m_previousFrame, m_grayFrame, m_diffFrame);
-        //Вычисляет абсолютную разницу между текущим и предыдущим кадром
         cv::threshold(m_diffFrame, m_threshFrame, m_threshold, 255, cv::THRESH_BINARY);
-        //Преобразует разницу в чёрно-белое изображение, где белые пиксели - зоны изменений
         cv::dilate(m_threshFrame, m_threshFrame, cv::Mat(), cv::Point(-1, -1), 2);
-        //Расширяет (увеличивает) белые области для объединения близких изменений
 
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(m_threshFrame, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-        //Находит границы всех белых областей (зон движения)
 
         bool motionDetected = false;
+        double totalFrameArea = frame.rows * frame.cols;
+        double motionArea = 0;
+
         for (const auto& contour : contours) {
             if (cv::contourArea(contour) < m_minContourArea) continue;
 
             motionDetected = true;
-            cv::rectangle(outputFrame, cv::boundingRect(contour), cv::Scalar(0, 255, 0), 2);
+            cv::Rect boundingRect = cv::boundingRect(contour);
+            cv::rectangle(outputFrame, boundingRect, cv::Scalar(0, 255, 0), 2);
+            motionArea += boundingRect.area();
         }
 
         m_previousFrame = m_grayFrame.clone();
 
         if (motionDetected) {
             qDebug() << "Motion detected with sensitivity level:" << m_sensitivityLevel;
+
+            double coveragePercentage = (motionArea / totalFrameArea) * 100.0;
+
+            // Get current time
+            auto now = std::chrono::system_clock::now();
+            std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+            std::tm* localTime = std::localtime(&currentTime);
+            char timeString[100];
+            std::strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", localTime);
+
+            // Log to file
+            std::ofstream logFile("motion_log.txt", std::ios::app);
+            if (logFile.is_open()) {
+                logFile << timeString << ", " << std::fixed << std::setprecision(2)
+                << coveragePercentage << "%\n";
+                logFile.close();
+            } else {
+                qWarning() << "Could not open log file for writing.";
+            }
         }
 
         return motionDetected;
-        //Отбрасывает мелкие контуры и рисует прямоугольники вокруг значимых движений
+
     } catch (const cv::Exception& e) {
         qCritical() << "Motion detection error:" << e.what();
         return false;
