@@ -1,8 +1,8 @@
 #include "motion_detector.h"
 #include <QDebug>
-#include <fstream>   // For logging
-#include <chrono>    // For time
-#include <iomanip>   // For formatting time
+#include <fstream>   // для работы с файлами
+#include <chrono>    // для работы со временем
+#include <iomanip>   // для форматирования времени
 #include <ctime>
 
 MotionDetector::MotionDetector() :
@@ -93,7 +93,7 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame) {
             char timeString[100];
             std::strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", localTime);
 
-            // Log to file
+            // Создание файла
             std::ofstream logFile("motion_log.txt", std::ios::app);
             if (logFile.is_open()) {
                 logFile << timeString << ", " << std::fixed << std::setprecision(2)

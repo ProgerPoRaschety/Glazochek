@@ -25,14 +25,23 @@ MainWindow::MainWindow(QWidget *parent)
     ui->sensitivitySlider->setTickInterval(1);
     ui->sensitivitySlider->setTickPosition(QSlider::TicksBelow);
     ui->sensitivityLabel->setText("Sensitivity: Medium");
-
+    ui->startButton->setText("Start");
+    ui->startButton->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #4CAF50;"
+        "   color: white;"
+        "   border: none;"
+        "   padding: 5px;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #45a049;"
+        "}"
+        );
     connect(m_webcam, &CVWebcamCapture::new_frame, this, &MainWindow::update_frame);
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
     connect(ui->sensitivitySlider, &QSlider::valueChanged, this, &MainWindow::on_sensitivitySlider_valueChanged);
-
-    if (!m_webcam->start_camera()) {
-        handle_camera_error(tr("Failed to initialize camera. Please check if camera is connected."));
-    }
+    connect(ui->startButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_clicked);
 }
 
 MainWindow::~MainWindow()
@@ -107,3 +116,67 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         update_frame(m_currentFrame, m_currentFps, m_lastMotionState);
     }
 }
+void MainWindow::clearCameraDisplay()
+{
+    // Создаём чёрный QPixmap того же размера, что и cameraLabel
+    QPixmap blackPixmap(ui->cameraLabel->size());
+    blackPixmap.fill(Qt::black);
+
+    // Устанавливаем чёрный экран
+    ui->cameraLabel->setPixmap(blackPixmap);
+
+    // Сбрасываем другие элементы интерфейса
+    ui->fpsLabel->clear();
+    ui->motionLabel->clear();
+    ui->cameraLabel->setStyleSheet("background-color: black; border: none;");
+}
+void MainWindow::setButtonStopStyle()
+{
+    ui->startButton->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #f44336;"
+        "   color: white;"
+        "   border: none;"
+        "   padding: 5px;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #d32f2f;"
+        "}"
+        );
+}
+void MainWindow::setButtonStartStyle()
+{
+    ui->startButton->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #4CAF50;"
+        "   color: white;"
+        "   border: none;"
+        "   padding: 5px;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #45a049;"
+        "}"
+        );
+}
+void MainWindow::on_pushButton_clicked()
+{
+    if (ui->startButton->text() == "Start") {
+        ui->startButton->setText("Stop");
+        setButtonStopStyle();
+
+        if (!m_webcam->start_camera()) {
+            handle_camera_error(tr("Failed to start camera."));
+            ui->startButton->setText("Start");
+            setButtonStartStyle();
+        }
+    } else {
+        ui->startButton->setText("Start");
+        setButtonStartStyle();
+        m_webcam->stop_camera();
+        clearCameraDisplay();
+    }
+
+}
+
