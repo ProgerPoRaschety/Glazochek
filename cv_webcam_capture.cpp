@@ -1,6 +1,10 @@
 #include "cv_webcam_capture.h"
 #include <QDebug>
 
+#include <QDir>
+#include <QDateTime>
+#include <opencv2/imgcodecs.hpp>
+
 CVWebcamCapture::CVWebcamCapture(QObject *parent)
     : QObject(parent),
     m_capture(nullptr),
@@ -9,6 +13,12 @@ CVWebcamCapture::CVWebcamCapture(QObject *parent)
     m_cameraOpened(false)
 {
     connect(m_timer, &QTimer::timeout, this, &CVWebcamCapture::process_frame);
+
+    m_motionCaptureTimer.start();
+    m_noMotionCaptureTimer.start();
+
+    m_motionCaptureTimer.start();
+    m_noMotionCaptureTimer.start();
     m_fpsTimer.start();
 }
 
@@ -98,6 +108,78 @@ void CVWebcamCapture::process_frame()
     try {
         outputFrame = frame.clone();
         motionDetected = m_motionDetector->detectMotion(frame, outputFrame);
+
+        // Photo capture logic
+        if (motionDetected) {
+            if (m_motionCaptureTimer.elapsed() >= MOTION_CAPTURE_INTERVAL) {
+                // Capture photo
+                QDir().mkpath(m_savePath);
+                QString filename = QString("%1/motion_%2.jpg")
+                                       .arg(m_savePath)
+                                       .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz"));
+                if (frame.empty()) { // Use original 'frame' for saving
+                    qWarning() << "Frame is empty, cannot save image";
+                } else {
+                    cv::imwrite(filename.toStdString(), frame); // Save the original frame
+                    qDebug() << "Captured motion photo:" << filename;
+                }
+                m_motionCaptureTimer.restart();
+            }
+            m_noMotionCaptureTimer.restart(); // Reset no motion timer if motion is detected
+        } else {
+            if (m_noMotionCaptureTimer.elapsed() >= NO_MOTION_CAPTURE_INTERVAL) {
+                // Capture photo
+                QDir().mkpath(m_savePath);
+                QString filename = QString("%1/no_motion_%2.jpg")
+                                       .arg(m_savePath)
+                                       .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz"));
+                if (frame.empty()) { // Use original 'frame' for saving
+                    qWarning() << "Frame is empty, cannot save image";
+                } else {
+                    cv::imwrite(filename.toStdString(), frame); // Save the original frame
+                    qDebug() << "Captured no motion photo:" << filename;
+                }
+                m_noMotionCaptureTimer.restart();
+            }
+            m_motionCaptureTimer.restart(); // Reset motion timer if no motion
+        }
+
+
+        // Photo capture logic
+        if (motionDetected) {
+            if (m_motionCaptureTimer.elapsed() >= MOTION_CAPTURE_INTERVAL) {
+                // Capture photo
+                QDir().mkpath(m_savePath);
+                QString filename = QString("%1/motion_%2.jpg")
+                                       .arg(m_savePath)
+                                       .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz"));
+                if (frame.empty()) { // Use original 'frame' for saving
+                    qWarning() << "Frame is empty, cannot save image";
+                } else {
+                    cv::imwrite(filename.toStdString(), frame); // Save the original frame
+                    qDebug() << "Captured motion photo:" << filename;
+                }
+                m_motionCaptureTimer.restart();
+            }
+            m_noMotionCaptureTimer.restart(); // Reset no motion timer if motion is detected
+        } else {
+            if (m_noMotionCaptureTimer.elapsed() >= NO_MOTION_CAPTURE_INTERVAL) {
+                // Capture photo
+                QDir().mkpath(m_savePath);
+                QString filename = QString("%1/no_motion_%2.jpg")
+                                       .arg(m_savePath)
+                                       .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz"));
+                if (frame.empty()) { // Use original 'frame' for saving
+                    qWarning() << "Frame is empty, cannot save image";
+                } else {
+                    cv::imwrite(filename.toStdString(), frame); // Save the original frame
+                    qDebug() << "Captured no motion photo:" << filename;
+                }
+                m_noMotionCaptureTimer.restart();
+            }
+            m_motionCaptureTimer.restart(); // Reset motion timer if no motion
+        }
+
         cv::cvtColor(outputFrame, outputFrame, cv::COLOR_BGR2RGB);
     } catch (const cv::Exception& e) {
         qCritical() << "OpenCV processing error:" << e.what();

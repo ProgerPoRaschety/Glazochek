@@ -4,6 +4,10 @@
 #include <QPainter>
 #include <QMessageBox>
 
+#include <QDir>
+#include <QDateTime>
+#include <opencv2/imgcodecs.hpp>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
     ui(new Ui::MainWindow),

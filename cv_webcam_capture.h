@@ -28,6 +28,12 @@ private slots:
     void process_frame();
 
 private:
+    QElapsedTimer m_motionCaptureTimer;
+    QElapsedTimer m_noMotionCaptureTimer;
+    const int MOTION_CAPTURE_INTERVAL = 3000; // 3 seconds in milliseconds
+    const int NO_MOTION_CAPTURE_INTERVAL = 60000; // 60 seconds in milliseconds
+    QString m_savePath = "../captures"; // Default save path
+
     cv::VideoCapture *m_capture;
     QTimer *m_timer;
     QElapsedTimer m_fpsTimer;
