@@ -16,13 +16,6 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QPushButton" name="settings_button">
-      <property name="text">
-       <string>Настройки</string>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QLabel" name="cameraLabel">
       <property name="minimumSize">
        <size>
