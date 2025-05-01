@@ -87,7 +87,7 @@ void CVWebcamCapture::process_frame()
 
     m_frameCount++;
     if (m_fpsTimer.elapsed() >= 1000) {
-        m_currentFps = m_frameCount * 1000.0 / m_fpsTimer.elapsed();//Считает количество кадров за 1 секунду
+        m_currentFps = m_frameCount * 1000.0 / m_fpsTimer.elapsed();
         m_frameCount = 0;
         m_fpsTimer.restart();
     }
@@ -108,7 +108,7 @@ void CVWebcamCapture::process_frame()
                  outputFrame.cols,
                  outputFrame.rows,
                  outputFrame.step,
-                 QImage::Format_RGB888);//Преобразует формат BGR OpenCV в RGB для корректного отображения в Qt
+                 QImage::Format_RGB888);
 
     if (!image.isNull()) {
         emit new_frame(image.copy(), m_currentFps, motionDetected);

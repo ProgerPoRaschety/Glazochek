@@ -1,8 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "cv_webcam_capture.h"
 #include <QPainter>
 #include <QMessageBox>
+#include <QMouseEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_webcam(new CVWebcamCapture(this))
 {
     ui->setupUi(this);
+    setWindowFlags(Qt::FramelessWindowHint | Qt::Window);
 
     this->resize(800, 600);
     this->setMinimumSize(640, 480);
@@ -26,28 +27,74 @@ MainWindow::MainWindow(QWidget *parent)
     ui->sensitivitySlider->setTickPosition(QSlider::TicksBelow);
     ui->sensitivityLabel->setText("Sensitivity: Medium");
     ui->startButton->setText("Start");
-    ui->startButton->setStyleSheet(
-        "QPushButton {"
-        "   background-color: #4CAF50;"
-        "   color: white;"
-        "   border: none;"
-        "   padding: 5px;"
-        "   border-radius: 4px;"
-        "}"
-        "QPushButton:pressed {"
-        "   background-color: #45a049;"
-        "}"
-        );
+    setButtonStartStyle();
+
     connect(m_webcam, &CVWebcamCapture::new_frame, this, &MainWindow::update_frame);
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
     connect(ui->sensitivitySlider, &QSlider::valueChanged, this, &MainWindow::on_sensitivitySlider_valueChanged);
     connect(ui->startButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_clicked);
+
+    setupCloseButton();
+    connect(ui->closeButton, &QPushButton::clicked, this, &MainWindow::on_closeButton_clicked);
 }
 
 MainWindow::~MainWindow()
 {
-    delete m_webcam;
     delete ui;
+    delete m_webcam;
+}
+
+void MainWindow::setupCloseButton()
+{
+    ui->closeButton->setText("×");
+    ui->closeButton->setFixedSize(30, 30);
+    ui->closeButton->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #ff5c5c;"
+        "   color: white;"
+        "   border-radius: 15px;"
+        "   border: none;"
+        "   font-size: 18px;"
+        "   font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "   background-color: #ff3b3b;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #ff1a1a;"
+        "}"
+        );
+}
+
+void MainWindow::on_closeButton_clicked()
+{
+    this->close();
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        m_dragPosition = event->globalPos() - frameGeometry().topLeft();
+        event->accept();
+    }
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent *event)
+{
+    if (event->buttons() & Qt::LeftButton) {
+        move(event->globalPos() - m_dragPosition);
+        event->accept();
+    }
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    if (!m_currentFrame.isNull()) {
+        update_frame(m_currentFrame, m_currentFps, m_lastMotionState);
+    }
+    // Устанавливаем позицию кнопки закрытия с учетом высоты меню
+    ui->closeButton->move(this->width() - ui->closeButton->width() - 10, ui->menubar->height());
 }
 
 void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
@@ -106,60 +153,9 @@ void MainWindow::on_sensitivitySlider_valueChanged(int value)
     case 5: sensitivityText = "Maximum"; break;
     }
     ui->sensitivityLabel->setText("Sensitivity: " + sensitivityText);
-    m_webcam->setSensitivity(value); // Вызов метода setSensitivity
+    m_webcam->setSensitivity(value);
 }
 
-void MainWindow::resizeEvent(QResizeEvent *event)
-{
-    QMainWindow::resizeEvent(event);
-    if (!m_currentFrame.isNull()) {
-        update_frame(m_currentFrame, m_currentFps, m_lastMotionState);
-    }
-}
-void MainWindow::clearCameraDisplay()
-{
-    // Создаём чёрный QPixmap того же размера, что и cameraLabel
-    QPixmap blackPixmap(ui->cameraLabel->size());
-    blackPixmap.fill(Qt::black);
-
-    // Устанавливаем чёрный экран
-    ui->cameraLabel->setPixmap(blackPixmap);
-
-    // Сбрасываем другие элементы интерфейса
-    ui->fpsLabel->clear();
-    ui->motionLabel->clear();
-    ui->cameraLabel->setStyleSheet("background-color: black; border: none;");
-}
-void MainWindow::setButtonStopStyle()
-{
-    ui->startButton->setStyleSheet(
-        "QPushButton {"
-        "   background-color: #f44336;"
-        "   color: white;"
-        "   border: none;"
-        "   padding: 5px;"
-        "   border-radius: 4px;"
-        "}"
-        "QPushButton:pressed {"
-        "   background-color: #d32f2f;"
-        "}"
-        );
-}
-void MainWindow::setButtonStartStyle()
-{
-    ui->startButton->setStyleSheet(
-        "QPushButton {"
-        "   background-color: #4CAF50;"
-        "   color: white;"
-        "   border: none;"
-        "   padding: 5px;"
-        "   border-radius: 4px;"
-        "}"
-        "QPushButton:pressed {"
-        "   background-color: #45a049;"
-        "}"
-        );
-}
 void MainWindow::on_pushButton_clicked()
 {
     if (ui->startButton->text() == "Start") {
@@ -177,6 +173,59 @@ void MainWindow::on_pushButton_clicked()
         m_webcam->stop_camera();
         clearCameraDisplay();
     }
-
 }
 
+void MainWindow::clearCameraDisplay()
+{
+    QPixmap blackPixmap(ui->cameraLabel->size());
+    blackPixmap.fill(Qt::black);
+    ui->cameraLabel->setPixmap(blackPixmap);
+    ui->fpsLabel->clear();
+    ui->motionLabel->clear();
+    ui->cameraLabel->setStyleSheet("background-color: black; border: none;");
+}
+
+void MainWindow::on_actionAbout_triggered()
+{
+    QMessageBox::about(this, "About Webcam Viewer",
+                       "<h2>Webcam Viewer 480p</h2>"
+                       "<p>Version 1.0</p>"
+                       "<p>A simple application for viewing webcam feed with motion detection.</p>");
+}
+
+void MainWindow::on_actionPreferences_triggered()
+{
+    QMessageBox::information(this, "Settings", "Settings dialog will be implemented here.");
+}
+
+void MainWindow::setButtonStartStyle()
+{
+    ui->startButton->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #4CAF50;"
+        "   color: white;"
+        "   border: none;"
+        "   padding: 5px;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #45a049;"
+        "}"
+        );
+}
+
+void MainWindow::setButtonStopStyle()
+{
+    ui->startButton->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #f44336;"
+        "   color: white;"
+        "   border: none;"
+        "   padding: 5px;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #d32f2f;"
+        "}"
+        );
+}

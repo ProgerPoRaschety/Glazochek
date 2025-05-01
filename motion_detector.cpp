@@ -1,8 +1,8 @@
 #include "motion_detector.h"
 #include <QDebug>
-#include <fstream>   // для работы с файлами
-#include <chrono>    // для работы со временем
-#include <iomanip>   // для форматирования времени
+#include <fstream>
+#include <chrono>
+#include <iomanip>
 #include <ctime>
 
 MotionDetector::MotionDetector() :
@@ -86,14 +86,12 @@ bool MotionDetector::detectMotion(const cv::Mat& frame, cv::Mat& outputFrame) {
 
             double coveragePercentage = (motionArea / totalFrameArea) * 100.0;
 
-            // Get current time
             auto now = std::chrono::system_clock::now();
             std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
             std::tm* localTime = std::localtime(&currentTime);
             char timeString[100];
             std::strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", localTime);
 
-            // Создание файла
             std::ofstream logFile("motion_log.txt", std::ios::app);
             if (logFile.is_open()) {
                 logFile << timeString << ", " << std::fixed << std::setprecision(2)
