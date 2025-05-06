@@ -93,8 +93,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     if (!m_currentFrame.isNull()) {
         update_frame(m_currentFrame, m_currentFps, m_lastMotionState);
     }
-    // Устанавливаем позицию кнопки закрытия с учетом высоты меню
-    ui->closeButton->move(this->width() - ui->closeButton->width() - 10, ui->menubar->height());
+    ui->closeButton->move(this->width() - ui->closeButton->width() - 20, ui->menubar->height()-22);
 }
 
 void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
@@ -207,6 +206,7 @@ void MainWindow::setButtonStartStyle()
         "   border: none;"
         "   padding: 5px;"
         "   border-radius: 4px;"
+        "   font-weight: bold;"
         "}"
         "QPushButton:pressed {"
         "   background-color: #45a049;"
@@ -223,6 +223,7 @@ void MainWindow::setButtonStopStyle()
         "   border: none;"
         "   padding: 5px;"
         "   border-radius: 4px;"
+        "   font-weight: bold;"
         "}"
         "QPushButton:pressed {"
         "   background-color: #d32f2f;"
