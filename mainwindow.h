@@ -35,6 +35,8 @@ private slots:
     void on_closeButton_clicked();
     void setButtonStartStyle();
     void setButtonStopStyle();
+    void setDarkTheme();
+    void setLightTheme();
 
 private:
     Ui::MainWindow *ui;

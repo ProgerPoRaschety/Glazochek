@@ -36,6 +36,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupCloseButton();
     connect(ui->closeButton, &QPushButton::clicked, this, &MainWindow::on_closeButton_clicked);
+
+    // Установим начальную тему
+    setDarkTheme();
 }
 
 MainWindow::~MainWindow()
@@ -194,7 +197,11 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionPreferences_triggered()
 {
-    QMessageBox::information(this, "Settings", "Settings dialog will be implemented here.");
+    QMenu themeMenu;
+    themeMenu.addAction("Dark Theme", this, &MainWindow::setDarkTheme);
+    themeMenu.addAction("Light Theme", this, &MainWindow::setLightTheme);
+
+    themeMenu.exec(QCursor::pos());
 }
 
 void MainWindow::setButtonStartStyle()
@@ -229,4 +236,55 @@ void MainWindow::setButtonStopStyle()
         "   background-color: #d32f2f;"
         "}"
         );
+}
+void MainWindow::setLightTheme()
+{
+    QPalette lightPalette;
+    lightPalette.setColor(QPalette::Window, QColor(240, 240, 240));
+    lightPalette.setColor(QPalette::WindowText, QColor(50, 50, 50));
+    lightPalette.setColor(QPalette::Base, Qt::white);
+    lightPalette.setColor(QPalette::AlternateBase, QColor(220, 220, 220));
+    lightPalette.setColor(QPalette::ToolTipBase, Qt::white);
+    lightPalette.setColor(QPalette::ToolTipText, QColor(50, 50, 50));
+    lightPalette.setColor(QPalette::Text, QColor(50, 50, 50));
+    lightPalette.setColor(QPalette::Button, QColor(230, 230, 230));
+    lightPalette.setColor(QPalette::ButtonText, QColor(50, 50, 50));
+    lightPalette.setColor(QPalette::BrightText, Qt::red);
+    lightPalette.setColor(QPalette::Link, QColor(0, 0, 200));
+    lightPalette.setColor(QPalette::Highlight, QColor(0, 0, 200));
+    lightPalette.setColor(QPalette::HighlightedText, Qt::white);
+
+    qApp->setPalette(lightPalette);
+
+
+    this->setStyleSheet("QMainWindow { background-color: #f0f0f0; }");
+    ui->cameraLabel->setStyleSheet("background-color: #f0f0f0;");
+    ui->fpsLabel->setStyleSheet("background-color: rgba(240,240,240,50%); color: #323232; padding: 5px;");
+    ui->sensitivityLabel->setStyleSheet("color: #323232;");
+    ui->motionLabel->setStyleSheet("color: #323232;");
+}
+void MainWindow::setDarkTheme()
+{
+    QPalette darkPalette;
+    darkPalette.setColor(QPalette::Window, QColor(53,53,53));
+    darkPalette.setColor(QPalette::WindowText, Qt::white);
+    darkPalette.setColor(QPalette::Base, QColor(25,25,25));
+    darkPalette.setColor(QPalette::AlternateBase, QColor(53,53,53));
+    darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
+    darkPalette.setColor(QPalette::ToolTipText, Qt::white);
+    darkPalette.setColor(QPalette::Text, Qt::white);
+    darkPalette.setColor(QPalette::Button, QColor(53,53,53));
+    darkPalette.setColor(QPalette::ButtonText, Qt::white);
+    darkPalette.setColor(QPalette::BrightText, Qt::red);
+    darkPalette.setColor(QPalette::Link, QColor(42,130,218));
+    darkPalette.setColor(QPalette::Highlight, QColor(42,130,218));
+    darkPalette.setColor(QPalette::HighlightedText, Qt::black);
+
+    qApp->setPalette(darkPalette);
+
+    this->setStyleSheet("QMainWindow { background-color: #353535; }");
+    ui->cameraLabel->setStyleSheet("background-color: black;");
+    ui->fpsLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
+    ui->sensitivityLabel->setStyleSheet("color: white;"); // Белый текст
+    ui->motionLabel->setStyleSheet("color: white;"); // Белый текст
 }
