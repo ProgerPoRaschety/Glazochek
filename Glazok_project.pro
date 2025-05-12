@@ -24,7 +24,8 @@ linux {
     LIBS += -lopencv_core \
             -lopencv_highgui \
             -lopencv_videoio \
-            -lopencv_imgproc
+            -lopencv_imgproc \
+            -lopencv_imgcodecs
 }
 
 # OpenCV configuration for Windows
