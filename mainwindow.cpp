@@ -3,7 +3,9 @@
 #include <QPainter>
 #include <QMessageBox>
 #include <QMouseEvent>
-
+#include <QDesktopServices>
+#include <QDir>
+#include <QProcess>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -21,17 +23,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->fpsLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
 
-    ui->sensitivitySlider->setRange(0, 5);
-    ui->sensitivitySlider->setValue(2);
-    ui->sensitivitySlider->setTickInterval(1);
-    ui->sensitivitySlider->setTickPosition(QSlider::TicksBelow);
-    ui->sensitivityLabel->setText("Sensitivity: Medium");
     ui->startButton->setText("Start");
     setButtonStartStyle();
 
     connect(m_webcam, &CVWebcamCapture::new_frame, this, &MainWindow::update_frame);
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
-    connect(ui->sensitivitySlider, &QSlider::valueChanged, this, &MainWindow::on_sensitivitySlider_valueChanged);
     connect(ui->startButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_clicked);
 
     setupCloseButton();
@@ -143,21 +139,6 @@ void MainWindow::handle_camera_error(const QString &message)
     }
 }
 
-void MainWindow::on_sensitivitySlider_valueChanged(int value)
-{
-    QString sensitivityText;
-    switch (value) {
-    case 0: sensitivityText = "Very Low"; break;
-    case 1: sensitivityText = "Low"; break;
-    case 2: sensitivityText = "Medium"; break;
-    case 3: sensitivityText = "High"; break;
-    case 4: sensitivityText = "Very High"; break;
-    case 5: sensitivityText = "Maximum"; break;
-    }
-    ui->sensitivityLabel->setText("Sensitivity: " + sensitivityText);
-    m_webcam->setSensitivity(value);
-}
-
 void MainWindow::on_pushButton_clicked()
 {
     if (ui->startButton->text() == "Start") {
@@ -197,11 +178,21 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionPreferences_triggered()
 {
-    QMenu themeMenu;
-    themeMenu.addAction("Dark Theme", this, &MainWindow::setDarkTheme);
-    themeMenu.addAction("Light Theme", this, &MainWindow::setLightTheme);
+    QMenu settingsMenu;
 
-    themeMenu.exec(QCursor::pos());
+    QMenu* themeMenu = settingsMenu.addMenu("Theme");
+    themeMenu->addAction("Dark Theme", this, &MainWindow::setDarkTheme);
+    themeMenu->addAction("Light Theme", this, &MainWindow::setLightTheme);
+
+    QMenu* sensitivityMenu = settingsMenu.addMenu("Sensitivity");
+    sensitivityMenu->addAction("Very Low", [this]() { setSensitivity(0); });
+    sensitivityMenu->addAction("Low", [this]() { setSensitivity(1); });
+    sensitivityMenu->addAction("Medium", [this]() { setSensitivity(2); });
+    sensitivityMenu->addAction("High", [this]() { setSensitivity(3); });
+    sensitivityMenu->addAction("Very High", [this]() { setSensitivity(4); });
+    sensitivityMenu->addAction("Maximum", [this]() { setSensitivity(5); });
+
+    settingsMenu.exec(QCursor::pos());
 }
 
 void MainWindow::setButtonStartStyle()
@@ -237,32 +228,7 @@ void MainWindow::setButtonStopStyle()
         "}"
         );
 }
-void MainWindow::setLightTheme()
-{
-    QPalette lightPalette;
-    lightPalette.setColor(QPalette::Window, QColor(240, 240, 240));
-    lightPalette.setColor(QPalette::WindowText, QColor(50, 50, 50));
-    lightPalette.setColor(QPalette::Base, Qt::white);
-    lightPalette.setColor(QPalette::AlternateBase, QColor(220, 220, 220));
-    lightPalette.setColor(QPalette::ToolTipBase, Qt::white);
-    lightPalette.setColor(QPalette::ToolTipText, QColor(50, 50, 50));
-    lightPalette.setColor(QPalette::Text, QColor(50, 50, 50));
-    lightPalette.setColor(QPalette::Button, QColor(230, 230, 230));
-    lightPalette.setColor(QPalette::ButtonText, QColor(50, 50, 50));
-    lightPalette.setColor(QPalette::BrightText, Qt::red);
-    lightPalette.setColor(QPalette::Link, QColor(0, 0, 200));
-    lightPalette.setColor(QPalette::Highlight, QColor(0, 0, 200));
-    lightPalette.setColor(QPalette::HighlightedText, Qt::white);
 
-    qApp->setPalette(lightPalette);
-
-
-    this->setStyleSheet("QMainWindow { background-color: #f0f0f0; }");
-    ui->cameraLabel->setStyleSheet("background-color: #f0f0f0;");
-    ui->fpsLabel->setStyleSheet("background-color: rgba(240,240,240,50%); color: #323232; padding: 5px;");
-    ui->sensitivityLabel->setStyleSheet("color: #323232;");
-    ui->motionLabel->setStyleSheet("color: #323232;");
-}
 void MainWindow::setDarkTheme()
 {
     QPalette darkPalette;
@@ -282,9 +248,67 @@ void MainWindow::setDarkTheme()
 
     qApp->setPalette(darkPalette);
 
+    // Применим стили для элементов, которые могут не подчиняться глобальной палитре
     this->setStyleSheet("QMainWindow { background-color: #353535; }");
     ui->cameraLabel->setStyleSheet("background-color: black;");
     ui->fpsLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
     ui->sensitivityLabel->setStyleSheet("color: white;"); // Белый текст
     ui->motionLabel->setStyleSheet("color: white;"); // Белый текст
+}
+
+void MainWindow::setLightTheme()
+{
+    QPalette lightPalette;
+    lightPalette.setColor(QPalette::Window, QColor(240, 240, 240)); // Мягкий светло-серый
+    lightPalette.setColor(QPalette::WindowText, QColor(50, 50, 50)); // Темно-серый текст
+    lightPalette.setColor(QPalette::Base, Qt::white);
+    lightPalette.setColor(QPalette::AlternateBase, QColor(220, 220, 220)); // Светло-серый
+    lightPalette.setColor(QPalette::ToolTipBase, Qt::white);
+    lightPalette.setColor(QPalette::ToolTipText, QColor(50, 50, 50)); // Темно-серый текст
+    lightPalette.setColor(QPalette::Text, QColor(50, 50, 50)); // Темно-серый текст
+    lightPalette.setColor(QPalette::Button, QColor(230, 230, 230)); // Мягкий светло-серый
+    lightPalette.setColor(QPalette::ButtonText, QColor(50, 50, 50)); // Темно-серый текст
+    lightPalette.setColor(QPalette::BrightText, Qt::red);
+    lightPalette.setColor(QPalette::Link, QColor(0, 0, 200)); // Мягкий синий
+    lightPalette.setColor(QPalette::Highlight, QColor(0, 0, 200)); // Мягкий синий
+    lightPalette.setColor(QPalette::HighlightedText, Qt::white);
+
+    qApp->setPalette(lightPalette);
+
+    // Применим стили для элементов, которые могут не подчиняться глобальной палитре
+    this->setStyleSheet("QMainWindow { background-color: #f0f0f0; }");
+    ui->cameraLabel->setStyleSheet("background-color: #f0f0f0;");
+    ui->fpsLabel->setStyleSheet("background-color: rgba(240,240,240,50%); color: #323232; padding: 5px;");
+    ui->sensitivityLabel->setStyleSheet("color: #323232;"); // Темно-серый текст
+    ui->motionLabel->setStyleSheet("color: #323232;"); // Темно-серый текст
+}
+
+void MainWindow::setSensitivity(int level)
+{
+    QString sensitivityText;
+    switch (level) {
+    case 0: sensitivityText = "Very Low"; break;
+    case 1: sensitivityText = "Low"; break;
+    case 2: sensitivityText = "Medium"; break;
+    case 3: sensitivityText = "High"; break;
+    case 4: sensitivityText = "Very High"; break;
+    case 5: sensitivityText = "Maximum"; break;
+    }
+    ui->sensitivityLabel->setText("Sensitivity: " + sensitivityText);
+    m_webcam->setSensitivity(level);
+}
+
+void MainWindow::on_actionJournal_triggered()
+{
+
+    QString imageDir = "/home/denismyalo/project/GLazochek_Trecker/Glazochek/build/captures";
+    QProcess process;
+    process.start("pgrep", QStringList() << "dolphin");
+
+    if (process.waitForFinished() && process.exitCode() == 0) {
+        // Если процесс уже запущен, не делаем ничего
+        return;
+    }
+
+    QProcess::startDetached("dolphin", QStringList() << imageDir);
 }
