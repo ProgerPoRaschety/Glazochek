@@ -31,13 +31,13 @@ private slots:
     void clearCameraDisplay();
     void on_actionAbout_triggered();
     void on_actionPreferences_triggered();
+    void on_actionJournal_triggered();
     void on_closeButton_clicked();
     void setButtonStartStyle();
     void setButtonStopStyle();
     void setDarkTheme();
     void setLightTheme();
     void setSensitivity(int level);
-    void on_actionJournal_triggered();
 
 private:
     Ui::MainWindow *ui;

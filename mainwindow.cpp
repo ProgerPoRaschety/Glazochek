@@ -6,6 +6,7 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QProcess>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -33,7 +34,6 @@ MainWindow::MainWindow(QWidget *parent)
     setupCloseButton();
     connect(ui->closeButton, &QPushButton::clicked, this, &MainWindow::on_closeButton_clicked);
 
-    // Установим начальную тему
     setDarkTheme();
 }
 
@@ -195,6 +195,41 @@ void MainWindow::on_actionPreferences_triggered()
     settingsMenu.exec(QCursor::pos());
 }
 
+void MainWindow::on_actionJournal_triggered()
+{
+    QString imageDir = "/home/denismyalo/project/GLazochek_Trecker/Glazochek/build/captures";
+
+    // Проверяем, запущен ли уже dolphin
+    QProcess process;
+    process.start("pgrep", QStringList() << "dolphin");
+    if (process.waitForFinished() && process.exitCode() == 0) {
+        return;
+    }
+
+#ifdef Q_OS_LINUX
+    QProcess fsCheck;
+    fsCheck.start("df", QStringList() << "--output=fstype" << imageDir);
+    if (fsCheck.waitForFinished()) {
+        QString output = fsCheck.readAllStandardOutput();
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        if (lines.size() >= 2) {
+            QString fsType = lines[1].trimmed();
+            if (fsType == "ntfs" || fsType == "vfat" || fsType == "exfat") {
+                QMessageBox::warning(this, "Warning",
+                                     QString("The directory is on a %1 filesystem which might have permission issues.").arg(fsType));
+            }
+        }
+    }
+    QProcess::startDetached("dolphin", QStringList() << imageDir);
+#elif defined(Q_OS_WIN)
+    QProcess::startDetached("explorer", QStringList() << imageDir);
+#elif defined(Q_OS_MAC)
+    QProcess::startDetached("open", QStringList() << imageDir);
+#else
+    QMessageBox::warning(this, "Unsupported OS", "This operating system is not supported.");
+#endif
+}
+
 void MainWindow::setButtonStartStyle()
 {
     ui->startButton->setStyleSheet(
@@ -248,39 +283,37 @@ void MainWindow::setDarkTheme()
 
     qApp->setPalette(darkPalette);
 
-    // Применим стили для элементов, которые могут не подчиняться глобальной палитре
     this->setStyleSheet("QMainWindow { background-color: #353535; }");
     ui->cameraLabel->setStyleSheet("background-color: black;");
     ui->fpsLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
-    ui->sensitivityLabel->setStyleSheet("color: white;"); // Белый текст
-    ui->motionLabel->setStyleSheet("color: white;"); // Белый текст
+    ui->sensitivityLabel->setStyleSheet("color: white;");
+    ui->motionLabel->setStyleSheet("color: white;");
 }
 
 void MainWindow::setLightTheme()
 {
     QPalette lightPalette;
-    lightPalette.setColor(QPalette::Window, QColor(240, 240, 240)); // Мягкий светло-серый
-    lightPalette.setColor(QPalette::WindowText, QColor(50, 50, 50)); // Темно-серый текст
+    lightPalette.setColor(QPalette::Window, QColor(240, 240, 240));
+    lightPalette.setColor(QPalette::WindowText, QColor(50, 50, 50));
     lightPalette.setColor(QPalette::Base, Qt::white);
-    lightPalette.setColor(QPalette::AlternateBase, QColor(220, 220, 220)); // Светло-серый
+    lightPalette.setColor(QPalette::AlternateBase, QColor(220, 220, 220));
     lightPalette.setColor(QPalette::ToolTipBase, Qt::white);
-    lightPalette.setColor(QPalette::ToolTipText, QColor(50, 50, 50)); // Темно-серый текст
-    lightPalette.setColor(QPalette::Text, QColor(50, 50, 50)); // Темно-серый текст
-    lightPalette.setColor(QPalette::Button, QColor(230, 230, 230)); // Мягкий светло-серый
-    lightPalette.setColor(QPalette::ButtonText, QColor(50, 50, 50)); // Темно-серый текст
+    lightPalette.setColor(QPalette::ToolTipText, QColor(50, 50, 50));
+    lightPalette.setColor(QPalette::Text, QColor(50, 50, 50));
+    lightPalette.setColor(QPalette::Button, QColor(230, 230, 230));
+    lightPalette.setColor(QPalette::ButtonText, QColor(50, 50, 50));
     lightPalette.setColor(QPalette::BrightText, Qt::red);
-    lightPalette.setColor(QPalette::Link, QColor(0, 0, 200)); // Мягкий синий
-    lightPalette.setColor(QPalette::Highlight, QColor(0, 0, 200)); // Мягкий синий
+    lightPalette.setColor(QPalette::Link, QColor(0, 0, 200));
+    lightPalette.setColor(QPalette::Highlight, QColor(0, 0, 200));
     lightPalette.setColor(QPalette::HighlightedText, Qt::white);
 
     qApp->setPalette(lightPalette);
 
-    // Применим стили для элементов, которые могут не подчиняться глобальной палитре
     this->setStyleSheet("QMainWindow { background-color: #f0f0f0; }");
     ui->cameraLabel->setStyleSheet("background-color: #f0f0f0;");
     ui->fpsLabel->setStyleSheet("background-color: rgba(240,240,240,50%); color: #323232; padding: 5px;");
-    ui->sensitivityLabel->setStyleSheet("color: #323232;"); // Темно-серый текст
-    ui->motionLabel->setStyleSheet("color: #323232;"); // Темно-серый текст
+    ui->sensitivityLabel->setStyleSheet("color: #323232;");
+    ui->motionLabel->setStyleSheet("color: #323232;");
 }
 
 void MainWindow::setSensitivity(int level)
@@ -296,19 +329,4 @@ void MainWindow::setSensitivity(int level)
     }
     ui->sensitivityLabel->setText("Sensitivity: " + sensitivityText);
     m_webcam->setSensitivity(level);
-}
-
-void MainWindow::on_actionJournal_triggered()
-{
-
-    QString imageDir = "/home/denismyalo/project/GLazochek_Trecker/Glazochek/build/captures";
-    QProcess process;
-    process.start("pgrep", QStringList() << "dolphin");
-
-    if (process.waitForFinished() && process.exitCode() == 0) {
-        // Если процесс уже запущен, не делаем ничего
-        return;
-    }
-
-    QProcess::startDetached("dolphin", QStringList() << imageDir);
 }
