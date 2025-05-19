@@ -25,7 +25,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
 
 private slots:
-    void update_frame(QImage frame, double fps, bool motionDetected);
+    void update_frame(const QImage& frame, double fps, bool motionDetected, double motionPercentage);
     void handle_camera_error(const QString &message);
     void on_pushButton_clicked();
     void clearCameraDisplay();
@@ -45,8 +45,9 @@ private:
     QImage m_currentFrame;
     double m_currentFps = 0.0;
     bool m_lastMotionState = false;
+    double m_lastMotionPercentage = 0.0;
     QPoint m_dragPosition;
     void setupCloseButton();
 };
 
-#endif // MAINWINDOW_H
+#endif

@@ -5,9 +5,12 @@
 #include <QTimer>
 #include <QImage>
 #include <QElapsedTimer>
+#include <QFile>
+#include <QTextStream>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include "motion_detector.h"
 
 class CVWebcamCapture : public QObject
@@ -23,7 +26,7 @@ public:
     bool isCameraOpened() const { return m_cameraOpened; }
 
 signals:
-    void new_frame(QImage frame, double fps, bool motionDetected);
+    void new_frame(QImage frame, double fps, bool motionDetected, double motionPercentage);
     void camera_error(QString message);
 
 private slots:
@@ -32,17 +35,23 @@ private slots:
 private:
     QElapsedTimer m_motionCaptureTimer;
     QElapsedTimer m_noMotionCaptureTimer;
-    const int MOTION_CAPTURE_INTERVAL = 3000; // 3 seconds in milliseconds
-    const int NO_MOTION_CAPTURE_INTERVAL = 60000; // 60 seconds in milliseconds
-    QString m_savePath = "../captures"; // Default save path
+    QElapsedTimer m_fpsTimer;
+    const int MOTION_CAPTURE_INTERVAL = 3000;
+    const int NO_MOTION_CAPTURE_INTERVAL = 60000;
+    QString m_savePath = "../captures";
+    QFile m_logFile;
+    QTextStream m_logStream;
 
     cv::VideoCapture *m_capture;
     QTimer *m_timer;
-    QElapsedTimer m_fpsTimer;
     int m_frameCount = 0;
     double m_currentFps = 0.0;
     MotionDetector *m_motionDetector;
     bool m_cameraOpened = false;
+
+    void setupLogFile();
+    void closeLogFile();
+    void logMotion(double percentage);
 };
 
 #endif // CV_WEBCAM_CAPTURE_H

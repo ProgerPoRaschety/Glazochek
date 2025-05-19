@@ -8,7 +8,7 @@ class MotionDetector
 {
 public:
     MotionDetector();
-    bool detectMotion(const cv::Mat& frame, cv::Mat& outputFrame);
+    bool detectMotion(const cv::Mat& frame, cv::Mat& outputFrame, double& motionPercentage);
     void setSensitivity(int level);
 
 private:

@@ -6,6 +6,7 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QProcess>
+#include <QStandardPaths>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -23,11 +24,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->cameraLabel->setStyleSheet("background-color: black;");
 
     ui->fpsLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
+    ui->motionLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
 
     ui->startButton->setText("Start");
     setButtonStartStyle();
 
-    connect(m_webcam, &CVWebcamCapture::new_frame, this, &MainWindow::update_frame);
+    connect(m_webcam, &CVWebcamCapture::new_frame, this,
+            static_cast<void (MainWindow::*)(const QImage&, double, bool, double)>(&MainWindow::update_frame));
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
     connect(ui->startButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_clicked);
 
@@ -90,20 +93,24 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
     if (!m_currentFrame.isNull()) {
-        update_frame(m_currentFrame, m_currentFps, m_lastMotionState);
+        update_frame(m_currentFrame, m_currentFps, m_lastMotionState, m_lastMotionPercentage);
     }
     ui->closeButton->move(this->width() - ui->closeButton->width() - 20, ui->menubar->height()-22);
 }
 
-void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
+void MainWindow::update_frame(const QImage& frame, double fps, bool motionDetected, double motionPercentage)
 {
     if (frame.isNull()) return;
 
     m_currentFrame = frame;
     m_currentFps = fps;
     m_lastMotionState = motionDetected;
+    m_lastMotionPercentage = motionPercentage;
 
     ui->fpsLabel->setText(QString("FPS: %1").arg(fps, 0, 'f', 1));
+    ui->motionLabel->setText(QString("Motion: %1 (%2%)")
+                                 .arg(motionDetected ? "Yes" : "No")
+                                 .arg(motionPercentage, 0, 'f', 1));
 
     QPixmap pixmap = QPixmap::fromImage(frame);
     if (pixmap.isNull()) return;
@@ -120,7 +127,6 @@ void MainWindow::update_frame(QImage frame, double fps, bool motionDetected)
                        pixmap);
 
     ui->cameraLabel->setPixmap(centeredPixmap);
-    ui->motionLabel->setText(motionDetected ? "Motion Detected: Yes" : "Motion Detected: No");
     ui->cameraLabel->setStyleSheet(QString("background-color: black; border: 2px solid %1;")
                                        .arg(motionDetected ? "red" : "green"));
 }
@@ -197,39 +203,50 @@ void MainWindow::on_actionPreferences_triggered()
 
 void MainWindow::on_actionJournal_triggered()
 {
-    QString imageDir = "/home/denismyalo/project/GLazochek_Trecker/Glazochek/build/captures";
-
-    // Проверяем, запущен ли уже dolphin
-    QProcess process;
-    process.start("pgrep", QStringList() << "dolphin");
-    if (process.waitForFinished() && process.exitCode() == 0) {
+    static bool isExplorerOpened = false;
+    if (isExplorerOpened) {
         return;
     }
 
-#ifdef Q_OS_LINUX
-    QProcess fsCheck;
-    fsCheck.start("df", QStringList() << "--output=fstype" << imageDir);
-    if (fsCheck.waitForFinished()) {
-        QString output = fsCheck.readAllStandardOutput();
-        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-        if (lines.size() >= 2) {
-            QString fsType = lines[1].trimmed();
-            if (fsType == "ntfs" || fsType == "vfat" || fsType == "exfat") {
-                QMessageBox::warning(this, "Warning",
-                                     QString("The directory is on a %1 filesystem which might have permission issues.").arg(fsType));
-            }
-        }
-    }
-    QProcess::startDetached("dolphin", QStringList() << imageDir);
-#elif defined(Q_OS_WIN)
-    QProcess::startDetached("explorer", QStringList() << imageDir);
+    QString imageDir = "/home/denismyalo/project/GLazochek_Trecker/Glazochek/build/captures";
+    QDir().mkpath(imageDir);
+
+    isExplorerOpened = true;
+
+#ifdef Q_OS_WIN
+    QProcess* process = new QProcess(this);
+    process->start("explorer", {imageDir});
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            [this, process](int, QProcess::ExitStatus) {
+                process->deleteLater();
+                isExplorerOpened = false;
+            });
 #elif defined(Q_OS_MAC)
-    QProcess::startDetached("open", QStringList() << imageDir);
+    QProcess* process = new QProcess(this);
+    process->start("open", {imageDir});
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            [this, process](int, QProcess::ExitStatus) {
+                process->deleteLater();
+                isExplorerOpened = false;
+            });
 #else
-    QMessageBox::warning(this, "Unsupported OS", "This operating system is not supported.");
+    QProcess* process = new QProcess(this);
+    if (QProcess::execute("which", {"dolphin"}) == 0) {
+        process->start("dolphin", {imageDir});
+    } else if (QProcess::execute("which", {"nautilus"}) == 0) {
+        process->start("nautilus", {imageDir});
+    } else {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(imageDir));
+        isExplorerOpened = false;
+        return;
+    }
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            [this, process](int, QProcess::ExitStatus) {
+                process->deleteLater();
+                isExplorerOpened = false;
+            });
 #endif
 }
-
 void MainWindow::setButtonStartStyle()
 {
     ui->startButton->setStyleSheet(
@@ -286,8 +303,7 @@ void MainWindow::setDarkTheme()
     this->setStyleSheet("QMainWindow { background-color: #353535; }");
     ui->cameraLabel->setStyleSheet("background-color: black;");
     ui->fpsLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
-    ui->sensitivityLabel->setStyleSheet("color: white;");
-    ui->motionLabel->setStyleSheet("color: white;");
+    ui->motionLabel->setStyleSheet("background-color: rgba(0,0,0,50%); color: white; padding: 5px;");
 }
 
 void MainWindow::setLightTheme()
@@ -312,8 +328,7 @@ void MainWindow::setLightTheme()
     this->setStyleSheet("QMainWindow { background-color: #f0f0f0; }");
     ui->cameraLabel->setStyleSheet("background-color: #f0f0f0;");
     ui->fpsLabel->setStyleSheet("background-color: rgba(240,240,240,50%); color: #323232; padding: 5px;");
-    ui->sensitivityLabel->setStyleSheet("color: #323232;");
-    ui->motionLabel->setStyleSheet("color: #323232;");
+    ui->motionLabel->setStyleSheet("background-color: rgba(240,240,240,50%); color: #323232; padding: 5px;");
 }
 
 void MainWindow::setSensitivity(int level)
