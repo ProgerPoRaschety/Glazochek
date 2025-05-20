@@ -1,3 +1,4 @@
+// mainwindow.cpp
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QPainter>
@@ -29,6 +30,19 @@ MainWindow::MainWindow(QWidget *parent)
     ui->startButton->setText("Start");
     setButtonStartStyle();
 
+    // Определяем универсальный путь для сохранения снимков и логов
+    // Используем AppLocalDataLocation, так как это данные приложения, которые могут быть большими
+    m_captureDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/Glazochek/captures";
+    if (m_captureDir.isEmpty()) {
+        qWarning() << "Could not determine standard application data location. Falling back to current directory.";
+        m_captureDir = QDir::currentPath() + "/captures";
+    }
+    QDir().mkpath(m_captureDir); // Убедимся, что каталог существует
+
+    // Передаем определенный путь классу захвата веб-камеры
+    m_webcam->setSavePath(m_captureDir);
+
+
     connect(m_webcam, &CVWebcamCapture::new_frame, this,
             static_cast<void (MainWindow::*)(const QImage&, double, bool, double)>(&MainWindow::update_frame));
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
@@ -38,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->closeButton, &QPushButton::clicked, this, &MainWindow::on_closeButton_clicked);
 
     setDarkTheme();
+    setSensitivity(2); // Инициализируем текст чувствительности, используя значение по умолчанию
 }
 
 MainWindow::~MainWindow()
@@ -208,8 +223,10 @@ void MainWindow::on_actionJournal_triggered()
         return;
     }
 
-    QString imageDir = "/home/denismyalo/project/GLazochek_Trecker/Glazochek/build/captures";
-    QDir().mkpath(imageDir);
+    // Используем универсальный путь для каталога снимков
+    QString imageDir = m_captureDir; // - Исходная строка была заменена на m_captureDir
+
+    QDir().mkpath(imageDir); // Убедимся, что каталог существует
 
     isExplorerOpened = true;
 
@@ -229,22 +246,36 @@ void MainWindow::on_actionJournal_triggered()
                 process->deleteLater();
                 isExplorerOpened = false;
             });
-#else
+#else // Q_OS_LINUX и другие Unix-подобные системы
     QProcess* process = new QProcess(this);
-    if (QProcess::execute("which", {"dolphin"}) == 0) {
+    // Проверяем наличие распространенных файловых менеджеров, предпочитая xdg-open
+    if (QProcess::execute("which", {"xdg-open"}) == 0) { // xdg-open - стандартный способ на Linux
+        process->start("xdg-open", {imageDir});
+    } else if (QProcess::execute("which", {"dolphin"}) == 0) {
         process->start("dolphin", {imageDir});
     } else if (QProcess::execute("which", {"nautilus"}) == 0) {
         process->start("nautilus", {imageDir});
+    } else if (QProcess::execute("which", {"thunar"}) == 0) { // Добавляем Thunar для XFCE
+        process->start("thunar", {imageDir});
+    } else if (QProcess::execute("which", {"pcmanfm"}) == 0) { // Добавляем PCManFM для LXDE
+        process->start("pcmanfm", {imageDir});
     } else {
+        // Запасной вариант для других сред
         QDesktopServices::openUrl(QUrl::fromLocalFile(imageDir));
         isExplorerOpened = false;
-        return;
+        return; // Возвращаемся, так как QDesktopServices обрабатывает очистку, и процесс не запускается
     }
-    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [this, process](int, QProcess::ExitStatus) {
-                process->deleteLater();
-                isExplorerOpened = false;
-            });
+    // Подключаемся только в том случае, если процесс был явно запущен
+    if (process->state() == QProcess::Starting || process->state() == QProcess::Running) {
+        connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                [this, process](int, QProcess::ExitStatus) {
+                    process->deleteLater();
+                    isExplorerOpened = false;
+                });
+    } else {
+        process->deleteLater(); // Если процесс не запустился по какой-либо причине
+        isExplorerOpened = false;
+    }
 #endif
 }
 void MainWindow::setButtonStartStyle()

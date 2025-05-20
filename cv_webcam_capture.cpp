@@ -1,3 +1,4 @@
+// cv_webcam_capture.cpp
 #include "cv_webcam_capture.h"
 #include <QDebug>
 #include <QDir>
@@ -22,9 +23,15 @@ CVWebcamCapture::~CVWebcamCapture()
     closeLogFile();
 }
 
+void CVWebcamCapture::setSavePath(const QString &path) // Добавлено: Реализация метода
+{
+    m_savePath = path;
+    qDebug() << "CVWebcamCapture save path set to:" << m_savePath;
+}
+
 void CVWebcamCapture::setupLogFile()
 {
-    QDir().mkpath(m_savePath);
+    QDir().mkpath(m_savePath); // Использует m_savePath
     QString logFilePath = QString("%1/motion_log_%2.txt")
                               .arg(m_savePath)
                               .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
@@ -147,7 +154,7 @@ void CVWebcamCapture::process_frame()
             logMotion(motionPercentage);
 
             if (m_motionCaptureTimer.elapsed() >= MOTION_CAPTURE_INTERVAL) {
-                QDir().mkpath(m_savePath);
+                QDir().mkpath(m_savePath); // Использует m_savePath
                 QString filename = QString("%1/motion_%2.jpg")
                                        .arg(m_savePath)
                                        .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz"));
@@ -157,7 +164,7 @@ void CVWebcamCapture::process_frame()
             m_noMotionCaptureTimer.restart();
         } else {
             if (m_noMotionCaptureTimer.elapsed() >= NO_MOTION_CAPTURE_INTERVAL) {
-                QDir().mkpath(m_savePath);
+                QDir().mkpath(m_savePath); // Использует m_savePath
                 QString filename = QString("%1/no_motion_%2.jpg")
                                        .arg(m_savePath)
                                        .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz"));

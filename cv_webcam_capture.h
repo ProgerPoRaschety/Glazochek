@@ -1,3 +1,4 @@
+// cv_webcam_capture.h
 #ifndef CV_WEBCAM_CAPTURE_H
 #define CV_WEBCAM_CAPTURE_H
 
@@ -24,6 +25,7 @@ public:
     void stop_camera();
     void setSensitivity(int level);
     bool isCameraOpened() const { return m_cameraOpened; }
+    void setSavePath(const QString &path); // Добавлено: Метод для установки пути сохранения
 
 signals:
     void new_frame(QImage frame, double fps, bool motionDetected, double motionPercentage);
@@ -38,7 +40,7 @@ private:
     QElapsedTimer m_fpsTimer;
     const int MOTION_CAPTURE_INTERVAL = 3000;
     const int NO_MOTION_CAPTURE_INTERVAL = 60000;
-    QString m_savePath = "../captures";
+    QString m_savePath = "../captures"; // Оставляем по умолчанию, будет переопределено
     QFile m_logFile;
     QTextStream m_logStream;
 

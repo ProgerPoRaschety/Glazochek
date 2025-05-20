@@ -1,3 +1,4 @@
+// mainwindow.h
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -5,6 +6,8 @@
 #include <QMessageBox>
 #include <QResizeEvent>
 #include <QMouseEvent>
+#include <QStandardPaths> // Добавлено: Для работы с универсальными путями
+#include <QDir>           // Добавлено: Для создания каталогов
 #include "cv_webcam_capture.h"
 
 QT_BEGIN_NAMESPACE
@@ -47,6 +50,7 @@ private:
     bool m_lastMotionState = false;
     double m_lastMotionPercentage = 0.0;
     QPoint m_dragPosition;
+    QString m_captureDir; // Добавлено: Переменная для хранения универсального пути сохранения
     void setupCloseButton();
 };
 
