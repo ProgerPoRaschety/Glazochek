@@ -166,6 +166,7 @@
      <string>File</string>
     </property>
     <addaction name="actionJournal"/>
+    <addaction name="actionFolder"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
@@ -199,6 +200,11 @@
     <string>Journal</string>
    </property>
   </action>
+  <action name="actionFolder">
+   <property name="text">
+    <string>Open Captures Folder</string>
+   </property>
+  </action>
   <action name="actionPreferences">
    <property name="text">
     <string>Preferences</string>
@@ -212,49 +218,24 @@
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>20</x>
-     <y>20</y>
-    </hint>
-   </hints>
   </connection>
   <connection>
    <sender>actionJournal</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_actionJournal_triggered()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>20</x>
-     <y>20</y>
-    </hint>
-   </hints>
+  </connection>
+  <connection>
+   <sender>actionFolder</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_actionFolder_triggered()</slot>
   </connection>
   <connection>
    <sender>actionPreferences</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_actionPreferences_triggered()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>20</x>
-     <y>20</y>
-    </hint>
-   </hints>
   </connection>
  </connections>
 </ui>
-

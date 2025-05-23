@@ -1,4 +1,3 @@
-// cv_webcam_capture.cpp
 #include "cv_webcam_capture.h"
 #include <QDebug>
 #include <QDir>
@@ -9,7 +8,10 @@ CVWebcamCapture::CVWebcamCapture(QObject *parent)
     m_capture(nullptr),
     m_timer(new QTimer(this)),
     m_motionDetector(new MotionDetector()),
-    m_cameraOpened(false)
+    m_frameCount(0),
+    m_currentFps(0.0),
+    m_cameraOpened(false),
+    m_savePath(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/Glazochek/captures")
 {
     connect(m_timer, &QTimer::timeout, this, &CVWebcamCapture::process_frame);
     m_fpsTimer.start();
@@ -23,26 +25,29 @@ CVWebcamCapture::~CVWebcamCapture()
     closeLogFile();
 }
 
-void CVWebcamCapture::setSavePath(const QString &path) // Добавлено: Реализация метода
+void CVWebcamCapture::setSavePath(const QString &path)
 {
     m_savePath = path;
-    qDebug() << "CVWebcamCapture save path set to:" << m_savePath;
+    QDir().mkpath(m_savePath);
+    qDebug() << "Save path set to:" << m_savePath;
 }
 
 void CVWebcamCapture::setupLogFile()
 {
-    QDir().mkpath(m_savePath); // Использует m_savePath
-    QString logFilePath = QString("%1/motion_log_%2.txt")
-                              .arg(m_savePath)
-                              .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
+    QDir().mkpath(m_savePath);
+    m_logFilePath = QString("%1/motion_log_%2.txt")
+                        .arg(m_savePath)
+                        .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
 
-    m_logFile.setFileName(logFilePath);
+    m_logFile.setFileName(m_logFilePath);
     if (m_logFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append)) {
         m_logStream.setDevice(&m_logFile);
         m_logStream << "Motion Detection Log - Started at: "
                     << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "\n";
         m_logStream << "Time, Motion Percentage, FPS\n";
         m_logStream.flush();
+    } else {
+        qWarning() << "Could not open log file:" << m_logFilePath;
     }
 }
 
@@ -154,7 +159,7 @@ void CVWebcamCapture::process_frame()
             logMotion(motionPercentage);
 
             if (m_motionCaptureTimer.elapsed() >= MOTION_CAPTURE_INTERVAL) {
-                QDir().mkpath(m_savePath); // Использует m_savePath
+                QDir().mkpath(m_savePath);
                 QString filename = QString("%1/motion_%2.jpg")
                                        .arg(m_savePath)
                                        .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz"));
@@ -164,7 +169,7 @@ void CVWebcamCapture::process_frame()
             m_noMotionCaptureTimer.restart();
         } else {
             if (m_noMotionCaptureTimer.elapsed() >= NO_MOTION_CAPTURE_INTERVAL) {
-                QDir().mkpath(m_savePath); // Использует m_savePath
+                QDir().mkpath(m_savePath);
                 QString filename = QString("%1/no_motion_%2.jpg")
                                        .arg(m_savePath)
                                        .arg(QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz"));

@@ -1,4 +1,3 @@
-// mainwindow.cpp
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QPainter>
@@ -8,6 +7,66 @@
 #include <QDir>
 #include <QProcess>
 #include <QStandardPaths>
+#include <QVBoxLayout>
+#include <QTextStream>
+#include <QTimer>
+#include <QFileInfo>
+#include <QPushButton>
+#include <QFont>
+
+QString MainWindow::findLatestLogFile() const
+{
+    QDir dir(m_webcam->getSavePath());
+    QStringList logFiles = dir.entryList({"motion_log_*.txt"}, QDir::Files, QDir::Time);
+    return logFiles.isEmpty() ? QString() : dir.filePath(logFiles.first());
+}
+
+void JournalDialog::loadLogContent()
+{
+    textEdit->clear();
+    QFile file(currentLogPath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        textEdit->setText(in.readAll());
+        file.close();
+        textEdit->moveCursor(QTextCursor::End);
+        textEdit->append("\n\nFile path: " + currentLogPath);
+    } else {
+        textEdit->setText("Could not open log file:\n" + currentLogPath +
+                          "\nError: " + file.errorString());
+    }
+}
+
+JournalDialog::JournalDialog(const QString& logPath, QWidget *parent)
+    : QDialog(parent), currentLogPath(logPath)
+{
+    setWindowTitle("Event Journal - " + QFileInfo(logPath).fileName());
+    resize(800, 600);
+
+    textEdit = new QTextEdit(this);
+    textEdit->setReadOnly(true);
+    textEdit->setFont(QFont("Courier New", 10));
+
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->addWidget(textEdit);
+
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+
+    QPushButton *refreshBtn = new QPushButton("Refresh", this);
+    refreshBtn->setStyleSheet("padding: 5px;");
+    connect(refreshBtn, &QPushButton::clicked, this, &JournalDialog::loadLogContent);
+
+    QPushButton *closeBtn = new QPushButton("Close", this);
+    closeBtn->setStyleSheet("padding: 5px;");
+    connect(closeBtn, &QPushButton::clicked, this, &QDialog::close);
+
+    btnLayout->addWidget(refreshBtn);
+    btnLayout->addWidget(closeBtn);
+    layout->addLayout(btnLayout);
+
+    setLayout(layout);
+    loadLogContent();
+}
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -30,21 +89,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->startButton->setText("Start");
     setButtonStartStyle();
 
-    // Определяем универсальный путь для сохранения снимков и логов
-    // Используем AppLocalDataLocation, так как это данные приложения, которые могут быть большими
-    m_captureDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/Glazochek/captures";
-    if (m_captureDir.isEmpty()) {
-        qWarning() << "Could not determine standard application data location. Falling back to current directory.";
-        m_captureDir = QDir::currentPath() + "/captures";
-    }
-    QDir().mkpath(m_captureDir); // Убедимся, что каталог существует
-
-    // Передаем определенный путь классу захвата веб-камеры
-    m_webcam->setSavePath(m_captureDir);
-
-
-    connect(m_webcam, &CVWebcamCapture::new_frame, this,
-            static_cast<void (MainWindow::*)(const QImage&, double, bool, double)>(&MainWindow::update_frame));
+    connect(m_webcam, &CVWebcamCapture::new_frame, this, &MainWindow::update_frame);
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
     connect(ui->startButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_clicked);
 
@@ -52,13 +97,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->closeButton, &QPushButton::clicked, this, &MainWindow::on_closeButton_clicked);
 
     setDarkTheme();
-    setSensitivity(2); // Инициализируем текст чувствительности, используя значение по умолчанию
+    setSensitivity(2);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
     delete m_webcam;
+    if (m_journalDialog) {
+        m_journalDialog->deleteLater();
+    }
 }
 
 void MainWindow::setupCloseButton()
@@ -218,66 +266,40 @@ void MainWindow::on_actionPreferences_triggered()
 
 void MainWindow::on_actionJournal_triggered()
 {
-    static bool isExplorerOpened = false;
-    if (isExplorerOpened) {
+    QString logFile = findLatestLogFile();
+    if (logFile.isEmpty()) {
+        QMessageBox::information(this, "Journal",
+                                 "No log files found in:\n" + m_webcam->getSavePath() +
+                                     "\nMotion detection logs will appear here after first motion event.");
         return;
     }
 
-    // Используем универсальный путь для каталога снимков
-    QString imageDir = m_captureDir; // - Исходная строка была заменена на m_captureDir
-
-    QDir().mkpath(imageDir); // Убедимся, что каталог существует
-
-    isExplorerOpened = true;
-
-#ifdef Q_OS_WIN
-    QProcess* process = new QProcess(this);
-    process->start("explorer", {imageDir});
-    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [this, process](int, QProcess::ExitStatus) {
-                process->deleteLater();
-                isExplorerOpened = false;
-            });
-#elif defined(Q_OS_MAC)
-    QProcess* process = new QProcess(this);
-    process->start("open", {imageDir});
-    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [this, process](int, QProcess::ExitStatus) {
-                process->deleteLater();
-                isExplorerOpened = false;
-            });
-#else // Q_OS_LINUX и другие Unix-подобные системы
-    QProcess* process = new QProcess(this);
-    // Проверяем наличие распространенных файловых менеджеров, предпочитая xdg-open
-    if (QProcess::execute("which", {"xdg-open"}) == 0) { // xdg-open - стандартный способ на Linux
-        process->start("xdg-open", {imageDir});
-    } else if (QProcess::execute("which", {"dolphin"}) == 0) {
-        process->start("dolphin", {imageDir});
-    } else if (QProcess::execute("which", {"nautilus"}) == 0) {
-        process->start("nautilus", {imageDir});
-    } else if (QProcess::execute("which", {"thunar"}) == 0) { // Добавляем Thunar для XFCE
-        process->start("thunar", {imageDir});
-    } else if (QProcess::execute("which", {"pcmanfm"}) == 0) { // Добавляем PCManFM для LXDE
-        process->start("pcmanfm", {imageDir});
+    if (!m_journalDialog) {
+        m_journalDialog = new JournalDialog(logFile, this);
+        connect(m_journalDialog, &QDialog::finished, this, [this]() {
+            m_journalDialog->deleteLater();
+            m_journalDialog = nullptr;
+        });
     } else {
-        // Запасной вариант для других сред
-        QDesktopServices::openUrl(QUrl::fromLocalFile(imageDir));
-        isExplorerOpened = false;
-        return; // Возвращаемся, так как QDesktopServices обрабатывает очистку, и процесс не запускается
+        m_journalDialog->currentLogPath = logFile;
+        m_journalDialog->loadLogContent();
     }
-    // Подключаемся только в том случае, если процесс был явно запущен
-    if (process->state() == QProcess::Starting || process->state() == QProcess::Running) {
-        connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-                [this, process](int, QProcess::ExitStatus) {
-                    process->deleteLater();
-                    isExplorerOpened = false;
-                });
-    } else {
-        process->deleteLater(); // Если процесс не запустился по какой-либо причине
-        isExplorerOpened = false;
-    }
-#endif
+
+    m_journalDialog->show();
+    m_journalDialog->raise();
+    m_journalDialog->activateWindow();
 }
+
+void MainWindow::on_actionFolder_triggered()
+{
+    if (!m_folderOpened) {
+        m_folderOpened = true;
+        QString path = m_webcam->getSavePath();
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+        QTimer::singleShot(1000, this, [this]() { m_folderOpened = false; });
+    }
+}
+
 void MainWindow::setButtonStartStyle()
 {
     ui->startButton->setStyleSheet(

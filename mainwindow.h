@@ -1,4 +1,3 @@
-// mainwindow.h
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -6,13 +5,24 @@
 #include <QMessageBox>
 #include <QResizeEvent>
 #include <QMouseEvent>
-#include <QStandardPaths> // Добавлено: Для работы с универсальными путями
-#include <QDir>           // Добавлено: Для создания каталогов
+#include <QStandardPaths>
+#include <QDir>
+#include <QTextEdit>
+#include <QDialog>
 #include "cv_webcam_capture.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+class JournalDialog : public QDialog {
+    Q_OBJECT
+public:
+    explicit JournalDialog(const QString& logPath, QWidget *parent = nullptr);
+    void loadLogContent();
+    QTextEdit *textEdit;
+    QString currentLogPath;
+};
 
 class MainWindow : public QMainWindow
 {
@@ -35,6 +45,7 @@ private slots:
     void on_actionAbout_triggered();
     void on_actionPreferences_triggered();
     void on_actionJournal_triggered();
+    void on_actionFolder_triggered();
     void on_closeButton_clicked();
     void setButtonStartStyle();
     void setButtonStopStyle();
@@ -50,8 +61,11 @@ private:
     bool m_lastMotionState = false;
     double m_lastMotionPercentage = 0.0;
     QPoint m_dragPosition;
-    QString m_captureDir; // Добавлено: Переменная для хранения универсального пути сохранения
+    JournalDialog *m_journalDialog = nullptr;
+    bool m_folderOpened = false;
+
+    QString findLatestLogFile() const;
     void setupCloseButton();
 };
 
-#endif
+#endif // MAINWINDOW_H
