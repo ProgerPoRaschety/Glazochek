@@ -1,3 +1,4 @@
+// main.cpp
 #include "mainwindow.h"
 #include <QApplication>
 #include <QPalette>
@@ -5,8 +6,7 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-
-    // Настройка темной темы
+    a.setApplicationName("Glazochek"); // Добавлено: Устанавливаем имя приложения
     a.setStyle("Fusion");
     QPalette darkPalette;
     darkPalette.setColor(QPalette::Window, QColor(53,53,53));

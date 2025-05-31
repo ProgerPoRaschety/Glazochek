@@ -8,7 +8,7 @@ class MotionDetector
 {
 public:
     MotionDetector();
-    bool detectMotion(const cv::Mat& frame, cv::Mat& outputFrame);
+    bool detectMotion(const cv::Mat& frame, cv::Mat& outputFrame, double& motionPercentage);
     void setSensitivity(int level);
 
 private:
@@ -22,4 +22,4 @@ private:
     int m_minContourArea;
 };
 
-#endif
+#endif // MOTION_DETECTOR_H

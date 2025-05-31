@@ -4,13 +4,25 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QResizeEvent>
+#include <QMouseEvent>
+#include <QStandardPaths>
+#include <QDir>
+#include <QTextEdit>
+#include <QDialog>
 #include "cv_webcam_capture.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-class CVWebcamCapture;
+class JournalDialog : public QDialog {
+    Q_OBJECT
+public:
+    explicit JournalDialog(const QString& logPath, QWidget *parent = nullptr);
+    void loadLogContent();
+    QTextEdit *textEdit;
+    QString currentLogPath;
+};
 
 class MainWindow : public QMainWindow
 {
@@ -22,10 +34,25 @@ public:
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+
 private slots:
-    void update_frame(QImage frame, double fps, bool motionDetected);
+    void update_frame(const QImage& frame, double fps, bool motionDetected, double motionPercentage);
     void handle_camera_error(const QString &message);
-    void on_sensitivitySlider_valueChanged(int value);
+    void on_startButton_clicked();
+    void clearCameraDisplay();
+    void on_actionAbout_triggered();
+    void on_actionPreferences_triggered();
+    void on_actionJournal_triggered();
+    void on_actionFolder_triggered();
+    void on_closeButton_clicked();
+    void setButtonStartStyle();
+    void setButtonStopStyle();
+    void setDarkTheme();
+    void setLightTheme();
+    void setSensitivity(int level);
+    void positionCloseButton();
 
 private:
     Ui::MainWindow *ui;
@@ -33,6 +60,13 @@ private:
     QImage m_currentFrame;
     double m_currentFps = 0.0;
     bool m_lastMotionState = false;
+    double m_lastMotionPercentage = 0.0;
+    QPoint m_dragPosition;
+    JournalDialog *m_journalDialog = nullptr;
+    bool m_folderOpened = false;
+
+    QString findLatestLogFile() const;
+    void setupCloseButton();
 };
 
-#endif
+#endif // MAINWINDOW_H
