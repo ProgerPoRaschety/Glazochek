@@ -13,7 +13,7 @@
 #include <QFileInfo>
 #include <QPushButton>
 #include <QFont>
-
+#include <QDebug>
 QString MainWindow::findLatestLogFile() const
 {
     QDir dir(m_webcam->getSavePath());
@@ -91,7 +91,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_webcam, &CVWebcamCapture::new_frame, this, &MainWindow::update_frame);
     connect(m_webcam, &CVWebcamCapture::camera_error, this, &MainWindow::handle_camera_error);
-    connect(ui->startButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_clicked);
+    connect(ui->startButton, &QPushButton::clicked, this, &MainWindow::on_startButton_clicked);
 
     setupCloseButton();
     connect(ui->closeButton, &QPushButton::clicked, this, &MainWindow::on_closeButton_clicked);
@@ -108,10 +108,22 @@ MainWindow::~MainWindow()
         m_journalDialog->deleteLater();
     }
 }
+void MainWindow::positionCloseButton()
+{
+    ui->closeButton->setFixedSize(30, 30);
+
+    int margin = 100;
+    ui->closeButton->move(this->width() - ui->closeButton->width() - margin, margin);
+    ui->closeButton->raise();
+
+    connect(this, &MainWindow::resizeEvent, [=](QResizeEvent*) {
+        ui->closeButton->move(this->width() - ui->closeButton->width() - margin, margin);
+    });
+}
 
 void MainWindow::setupCloseButton()
 {
-    ui->closeButton->setText("×");
+    ui->closeButton->setText("X");
     ui->closeButton->setFixedSize(30, 30);
     ui->closeButton->setStyleSheet(
         "QPushButton {"
@@ -128,9 +140,32 @@ void MainWindow::setupCloseButton()
         "QPushButton:pressed {"
         "   background-color: #ff1a1a;"
         "}"
-        );
-}
+    );
 
+    QMenu* closeMenu = new QMenu(this);
+    closeMenu->setStyleSheet(
+        "QMenu {"
+        "   background-color: #ff5c5c;"
+        "   color: white;"
+        "   border: 1px solid white;"
+        "}"
+        "QMenu::item:selected {"
+        "   background-color: #ff3b3b;"
+        "}"
+    );
+
+    QAction* exitAction = new QAction("Close Application", this);
+    closeMenu->addAction(exitAction);
+    connect(exitAction, &QAction::triggered, this, &MainWindow::on_closeButton_clicked);
+
+    ui->closeButton->move(this->width() - ui->closeButton->width() - 10, 10);
+    ui->closeButton->raise();
+
+
+    connect(this, &MainWindow::resizeEvent, [=](QResizeEvent*) {
+        ui->closeButton->move(this->width() - ui->closeButton->width() - 10, 10);
+    });
+}
 void MainWindow::on_closeButton_clicked()
 {
     this->close();
@@ -208,8 +243,10 @@ void MainWindow::handle_camera_error(const QString &message)
     }
 }
 
-void MainWindow::on_pushButton_clicked()
+void MainWindow::on_startButton_clicked()
 {
+
+
     if (ui->startButton->text() == "Start") {
         ui->startButton->setText("Stop");
         setButtonStopStyle();
@@ -225,7 +262,9 @@ void MainWindow::on_pushButton_clicked()
         m_webcam->stop_camera();
         clearCameraDisplay();
     }
+
 }
+
 
 void MainWindow::clearCameraDisplay()
 {

@@ -40,7 +40,7 @@ protected:
 private slots:
     void update_frame(const QImage& frame, double fps, bool motionDetected, double motionPercentage);
     void handle_camera_error(const QString &message);
-    void on_pushButton_clicked();
+    void on_startButton_clicked();
     void clearCameraDisplay();
     void on_actionAbout_triggered();
     void on_actionPreferences_triggered();
@@ -52,6 +52,7 @@ private slots:
     void setDarkTheme();
     void setLightTheme();
     void setSensitivity(int level);
+    void positionCloseButton();
 
 private:
     Ui::MainWindow *ui;

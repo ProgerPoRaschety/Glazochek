@@ -18,7 +18,6 @@ HEADERS += \
 FORMS += \
     mainwindow.ui
 
-# OpenCV configuration for Linux
 linux {
     INCLUDEPATH += /usr/include/opencv4
     LIBS += -lopencv_core \
@@ -28,10 +27,9 @@ linux {
             -lopencv_imgcodecs
 }
 
-# OpenCV configuration for Windows
 win32 {
     # Путь к установленной OpenCV через vcpkg
-    OPENCV_DIR = C:/Users/Antonio/vcpkg/installed/x64-windows
+    OPENCV_DIR = C:\msys64\mingw64
 
     INCLUDEPATH += $$OPENCV_DIR/include
     INCLUDEPATH += $$OPENCV_DIR/include/opencv4
@@ -44,5 +42,6 @@ win32 {
             -lopencv_videoio
 
     # Копирование DLL в папку с исполняемым файлом
-    QMAKE_POST_LINK += copy /Y $$OPENCV_DIR\\bin\\*.dll $$OUT_PWD\\
+    QMAKE_POST_LINK += xcopy /Y /D /Q "$$OPENCV_DIR\\bin\\*.dll" "$$OUT_PWD\\"
+
 }

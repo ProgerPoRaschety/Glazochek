@@ -8,9 +8,10 @@ CVWebcamCapture::CVWebcamCapture(QObject *parent)
     m_capture(nullptr),
     m_timer(new QTimer(this)),
     m_motionDetector(new MotionDetector()),
+    m_cameraOpened(false),
     m_frameCount(0),
     m_currentFps(0.0),
-    m_cameraOpened(false),
+
     m_savePath(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/Glazochek/captures")
 {
     connect(m_timer, &QTimer::timeout, this, &CVWebcamCapture::process_frame);

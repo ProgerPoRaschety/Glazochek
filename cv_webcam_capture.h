@@ -37,7 +37,6 @@ private slots:
     void process_frame();
 
 private:
-    // Изменён порядок объявления членов класса
     cv::VideoCapture *m_capture;
     QTimer *m_timer;
     MotionDetector *m_motionDetector;
@@ -46,14 +45,14 @@ private:
     QElapsedTimer m_noMotionCaptureTimer;
     QElapsedTimer m_fpsTimer;
 
-    QString m_savePath;
-    QString m_logFilePath;
+    bool m_cameraOpened;
+    QString vm_logFilePath;
     QFile m_logFile;
     QTextStream m_logStream;
-
+    QString m_logFilePath;
     int m_frameCount;
     double m_currentFps;
-    bool m_cameraOpened;
+    QString m_savePath;
 
     const int MOTION_CAPTURE_INTERVAL = 3000;
     const int NO_MOTION_CAPTURE_INTERVAL = 60000;
