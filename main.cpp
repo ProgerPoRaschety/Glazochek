@@ -1,4 +1,3 @@
-// main.cpp
 #include "mainwindow.h"
 #include <QApplication>
 #include <QPalette>
@@ -6,7 +5,7 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    a.setApplicationName("Glazochek"); // Добавлено: Устанавливаем имя приложения
+    a.setApplicationName("Glazochek");
     a.setStyle("Fusion");
     QPalette darkPalette;
     darkPalette.setColor(QPalette::Window, QColor(53,53,53));
